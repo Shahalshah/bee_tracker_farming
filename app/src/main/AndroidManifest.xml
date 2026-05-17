@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Madhu-Siri"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MadhuSiri">
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCwzUJ9cXf3fDy5D3g4bCewYsJLen1z28Y" />
+
+        <activity
+            android:name=".activities.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MadhuSiri">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".activities.LoginActivity" />
+        <activity android:name=".activities.SignupActivity" />
+        <activity android:name=".activities.DashboardActivity" />
+        <activity android:name=".activities.TipsActivity" />
+        <activity android:name=".activities.MapActivity" />
+        <activity android:name=".activities.AlertActivity" />
+        <activity android:name=".activities.HealthTrackerActivity" />
+        <activity android:name=".activities.ProfileActivity" />
+        <activity android:name=".activities.NotificationHistoryActivity" />
+        <activity android:name=".activities.HoneyProductionActivity" />
+
+        <!-- Placeholder for other activities if needed -->
+        <!-- <activity android:name=".activities.MapActivity" /> -->
+        <!-- <activity android:name=".activities.HealthTrackerActivity" /> -->
+        <!-- <activity android:name=".activities.ProfileActivity" /> -->
+
+    </application>
+
+</manifest>

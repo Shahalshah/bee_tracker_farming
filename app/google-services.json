@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "737428903181",
+    "project_id": "beee-1db3f",
+    "storage_bucket": "beee-1db3f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:737428903181:android:06541b88bae0f7a71d0c44",
+        "android_client_info": {
+          "package_name": "com.example.ben"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6zG87Sk2sQApNojLKXYoV0AI8R706WDY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
