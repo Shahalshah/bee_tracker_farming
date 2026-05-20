@@ -24,10 +24,10 @@
     <string name="welcome_user">Welcome, %1$s!</string>
     <string name="hello_user">Hello, %1$s!</string>
     <string name="hello_beekeeper">Hello, Beekeeper!</string>
+    <string name="hello_farmer">Hello, Farmer!</string>
     <string name="beekeeper_banner_text">Healthy Bees, Happy Environment, Better Future 💚 🐝</string>
 
-    <string name="hive_map">Hive Map</string>
-    <string name="view_hive_map">View Hive Map (Nearby Hives)</string>
+    <string name="view_hive_map">View Hive Map</string>
     <string name="spray_alert">Spray Alert</string>
     <string name="spraying_today">Spraying Today?</string>
     <string name="health_tracker">Hive Health Tracker</string>
@@ -49,12 +49,11 @@
     <string name="alerts">Alerts</string>
     <string name="tips">Tips</string>
     <string name="health">Health</string>
-    <string name="farmer_banner">Let\'s protect our bees and crops together</string>
-    <string name="beekeeper_banner">Healthy Bees, Happy Environment. Better Future</string>
+    <string name="farmer_banner">Let\'s protect our\nbees and crops\ntogether 🍃 🐝</string>
+    <string name="beekeeper_banner">Healthy Bees,\nHappy Environment.\nBetter Future 💚 🐝</string>
     <string name="quick_actions">Quick Actions</string>
     <string name="spraying_today_sub">(Spraying Today)</string>
     <string name="nearby_hives_sub">(Nearby Hives)</string>
-    <string name="view_alerts">View Alerts</string>
     <string name="user_avatar">User Avatar</string>
     <string name="notifications">Notifications</string>
     <string name="banner_image">Banner Image</string>

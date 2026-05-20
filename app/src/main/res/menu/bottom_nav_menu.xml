@@ -9,9 +9,9 @@
         android:icon="@android:drawable/ic_dialog_map"
         android:title="@string/map" />
     <item
-        android:id="@+id/nav_health"
-        android:icon="@android:drawable/btn_star_big_on"
-        android:title="@string/health" />
+        android:id="@+id/nav_alerts"
+        android:icon="@android:drawable/ic_popup_reminder"
+        android:title="@string/alerts" />
     <item
         android:id="@+id/nav_tips"
         android:icon="@android:drawable/ic_menu_info_details"
