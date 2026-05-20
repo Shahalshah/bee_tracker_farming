@@ -1,10 +1,10 @@
 package com.example.ben.models
 
 data class Hive(
-    val id: String = "",
-    val beekeeperId: String = "",
-    val name: String = "",
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0,
-    val description: String = ""
+    var id: String = "",
+    var beekeeperId: String = "",
+    var name: String = "",
+    var latitude: Double = 0.0,
+    var longitude: Double = 0.0,
+    var description: String = ""
 )

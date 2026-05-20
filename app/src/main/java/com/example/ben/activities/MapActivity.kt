@@ -11,6 +11,8 @@ import com.example.ben.R
 import com.example.ben.databinding.ActivityMapBinding
 import com.example.ben.models.Hive
 import com.example.ben.utils.FirebaseUtils
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -24,7 +26,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapBinding
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var action: String = ""
+    private var currentCircle: Circle? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +36,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         setContentView(binding.root)
 
         action = intent.getStringExtra("ACTION") ?: ""
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         binding.toolbar.setNavigationOnClickListener { finish() }
 
@@ -45,20 +50,14 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
+            getCurrentLocation()
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 100)
+            // Fallback to default
+            val defaultLocation = LatLng(12.9716, 77.5946)
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 14f))
+            updateCircle(defaultLocation)
         }
-
-        val defaultLocation = LatLng(12.9716, 77.5946)
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 14f))
-
-        // Add 2km radius circle around current location (or default)
-        mMap.addCircle(CircleOptions()
-            .center(defaultLocation)
-            .radius(2000.0)
-            .strokeWidth(2f)
-            .strokeColor(Color.BLUE)
-            .fillColor(0x220000FF))
 
         loadHives()
 
@@ -82,6 +81,32 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
+        
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                val currentLatLng = LatLng(location.latitude, location.longitude)
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+                updateCircle(currentLatLng)
+            } else {
+                val defaultLocation = LatLng(12.9716, 77.5946)
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 14f))
+                updateCircle(defaultLocation)
+            }
+        }
+    }
+
+    private fun updateCircle(center: LatLng) {
+        currentCircle?.remove()
+        currentCircle = mMap.addCircle(CircleOptions()
+            .center(center)
+            .radius(2000.0)
+            .strokeWidth(2f)
+            .strokeColor(Color.BLUE)
+            .fillColor(0x220000FF))
+    }
+
     private fun showAddHiveDialog(latLng: LatLng) {
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Add Hive")
@@ -91,41 +116,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             .setNegativeButton("No", null)
             .show()
-    }
-
-    private fun loadHives() {
-        FirebaseUtils.hivesRef().addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                // Keep the circle, just clear markers if needed, but here I clear everything
-                // So I redraw the circle too if I use mMap.clear()
-                // Better approach: track markers or clear and redraw circle.
-                mMap.clear()
-                
-                // Redraw circle
-                val defaultLocation = LatLng(12.9716, 77.5946)
-                mMap.addCircle(CircleOptions()
-                    .center(defaultLocation)
-                    .radius(2000.0)
-                    .strokeWidth(2f)
-                    .strokeColor(Color.BLUE)
-                    .fillColor(0x220000FF))
-
-                for (hiveSnapshot in snapshot.children) {
-                    val hive = hiveSnapshot.getValue(Hive::class.java)
-                    hive?.let {
-                        val pos = LatLng(it.latitude, it.longitude)
-                        mMap.addMarker(MarkerOptions()
-                            .position(pos)
-                            .title(it.name)
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)))
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@MapActivity, "Failed to load hives", Toast.LENGTH_SHORT).show()
-            }
-        })
     }
 
     private fun addHiveToDatabase(latLng: LatLng) {
@@ -142,9 +132,43 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         FirebaseUtils.hivesRef().child(hiveId).setValue(hive)
             .addOnSuccessListener {
                 Toast.makeText(this, "Hive pinned successfully!", Toast.LENGTH_SHORT).show()
+                // The onDataChange listener will pick this up and draw the marker
             }
             .addOnFailureListener {
                 Toast.makeText(this, "Failed to pin hive: ${it.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun loadHives() {
+        FirebaseUtils.hivesRef().addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!::mMap.isInitialized) return
+                
+                // Instead of full clear, we could manage markers, but clear is safer for basic sync
+                mMap.clear()
+                
+                // Redraw the circle if we have a center, else use Bangalore
+                val circleCenter = currentCircle?.center ?: LatLng(12.9716, 77.5946)
+                updateCircle(circleCenter)
+
+                var count = 0
+                for (hiveSnapshot in snapshot.children) {
+                    val hive = hiveSnapshot.getValue(Hive::class.java)
+                    if (hive != null) {
+                        val pos = LatLng(hive.latitude, hive.longitude)
+                        mMap.addMarker(MarkerOptions()
+                            .position(pos)
+                            .title(hive.name)
+                            .snippet(hive.description)
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)))
+                        count++
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(this@MapActivity, "Failed to load hives: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 }
