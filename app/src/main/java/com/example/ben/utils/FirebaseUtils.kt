@@ -5,7 +5,9 @@ import com.google.firebase.database.FirebaseDatabase
 
 object FirebaseUtils {
     val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    val database: FirebaseDatabase by lazy { FirebaseDatabase.getInstance() }
+    val database: FirebaseDatabase by lazy { 
+        FirebaseDatabase.getInstance("https://beee-1db3f-default-rtdb.firebaseio.com/")
+    }
     
     val currentUserUid: String?
         get() = auth.currentUser?.uid

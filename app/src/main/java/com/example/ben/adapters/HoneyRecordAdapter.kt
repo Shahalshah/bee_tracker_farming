@@ -6,7 +6,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.ben.databinding.ItemHoneyRecordBinding
 import com.example.ben.models.HoneyRecord
 
-class HoneyRecordAdapter(private val records: List<HoneyRecord>) : RecyclerView.Adapter<HoneyRecordAdapter.ViewHolder>() {
+class HoneyRecordAdapter(
+    private var records: List<HoneyRecord>,
+    private val onDelete: (String) -> Unit
+) : RecyclerView.Adapter<HoneyRecordAdapter.ViewHolder>() {
 
     class ViewHolder(val binding: ItemHoneyRecordBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -17,9 +20,18 @@ class HoneyRecordAdapter(private val records: List<HoneyRecord>) : RecyclerView.
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val record = records[position]
-        holder.binding.tvQuantity.text = "${record.quantity} kg"
-        holder.binding.tvDate.text = record.date
+        holder.binding.tvQuantity.text = "${record.quantity} kg (${record.quality})"
+        holder.binding.tvDate.text = record.harvestDate
+        
+        holder.binding.btnDelete.setOnClickListener {
+            onDelete(record.id)
+        }
     }
 
     override fun getItemCount() = records.size
+
+    fun updateData(newList: List<HoneyRecord>) {
+        records = newList
+        notifyDataSetChanged()
+    }
 }

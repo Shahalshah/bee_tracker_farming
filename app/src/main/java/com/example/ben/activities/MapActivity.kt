@@ -1,6 +1,7 @@
 package com.example.ben.activities
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
@@ -65,6 +66,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.setOnMapClickListener { latLng ->
             if (action == "ADD_HIVE") {
                 showAddHiveDialog(latLng)
+            } else {
+                Toast.makeText(this, "Location: ${latLng.latitude}, ${latLng.longitude}", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -108,35 +111,33 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun showAddHiveDialog(latLng: LatLng) {
+        // Clear previous temporary markers
+        mMap.clear()
+        loadHives() // This will redraw everything including the circle
+        
+        // Add a temporary marker to show where the user clicked
+        mMap.addMarker(MarkerOptions()
+            .position(latLng)
+            .title("New Hive Location")
+            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)))
+
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Add Hive")
             .setMessage("Do you want to add a hive at this location?")
             .setPositiveButton("Yes") { _, _ ->
-                addHiveToDatabase(latLng)
+                val intent = Intent(this, AddHiveActivity::class.java)
+                intent.putExtra("LAT", latLng.latitude)
+                intent.putExtra("LNG", latLng.longitude)
+                startActivity(intent)
             }
-            .setNegativeButton("No", null)
+            .setNegativeButton("No") { _, _ ->
+                // Refresh to remove the blue marker
+                mMap.clear()
+                val circleCenter = currentCircle?.center ?: LatLng(12.9716, 77.5946)
+                updateCircle(circleCenter)
+                loadHives()
+            }
             .show()
-    }
-
-    private fun addHiveToDatabase(latLng: LatLng) {
-        val hiveId = FirebaseUtils.hivesRef().push().key ?: return
-        val hive = Hive(
-            id = hiveId,
-            beekeeperId = FirebaseUtils.currentUserUid ?: "",
-            name = "My Bee Hive",
-            latitude = latLng.latitude,
-            longitude = latLng.longitude,
-            description = "Protected area"
-        )
-
-        FirebaseUtils.hivesRef().child(hiveId).setValue(hive)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Hive pinned successfully!", Toast.LENGTH_SHORT).show()
-                // The onDataChange listener will pick this up and draw the marker
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Failed to pin hive: ${it.message}", Toast.LENGTH_SHORT).show()
-            }
     }
 
     private fun loadHives() {
@@ -144,10 +145,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!::mMap.isInitialized) return
                 
-                // Instead of full clear, we could manage markers, but clear is safer for basic sync
+                // Clear existing markers (excluding the current temporary one if any)
+                // Actually, clear and redraw everything is cleaner for real-time
                 mMap.clear()
                 
-                // Redraw the circle if we have a center, else use Bangalore
                 val circleCenter = currentCircle?.center ?: LatLng(12.9716, 77.5946)
                 updateCircle(circleCenter)
 
@@ -163,6 +164,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)))
                         count++
                     }
+                }
+                if (count > 0) {
+                    Toast.makeText(this@MapActivity, "Loaded $count hives", Toast.LENGTH_SHORT).show()
                 }
             }
 

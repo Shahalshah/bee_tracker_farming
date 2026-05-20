@@ -2,39 +2,36 @@ package com.example.ben.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.ben.R
 import com.example.ben.databinding.ActivityLoginBinding
-import com.example.ben.utils.FirebaseUtils
+import com.example.ben.viewmodels.AuthViewModel
 
 class LoginActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityLoginBinding
+    private val viewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        observeViewModel()
+
         binding.btnLogin.setOnClickListener {
             val email = binding.etEmail.text.toString().trim()
-            val password = binding.etPassword.text.toString().trim()
+            val pass = binding.etPassword.text.toString().trim()
 
-            if (email.isEmpty() || password.isEmpty()) {
+            if (email.isEmpty() || pass.isEmpty()) {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            FirebaseUtils.auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        startActivity(Intent(this, DashboardActivity::class.java))
-                        finish()
-                    } else {
-                        val errorMessage = task.exception?.message ?: "Unknown error"
-                        Toast.makeText(this, "Login Failed: $errorMessage", Toast.LENGTH_SHORT).show()
-                    }
-                }
+            binding.progressBar.visibility = View.VISIBLE
+            viewModel.login(email, pass)
         }
 
         binding.tvSignup.setOnClickListener {
@@ -42,17 +39,22 @@ class LoginActivity : AppCompatActivity() {
         }
 
         binding.tvForgotPassword.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            if (email.isEmpty()) {
-                Toast.makeText(this, "Enter your email to reset password", Toast.LENGTH_SHORT).show()
-            } else {
-                FirebaseUtils.auth.sendPasswordResetEmail(email)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Toast.makeText(this, "Password reset email sent", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+            startActivity(Intent(this, ForgotPasswordActivity::class.java))
+        }
+    }
+
+    private fun observeViewModel() {
+        viewModel.authState.observe(this) { authResult ->
+            binding.progressBar.visibility = View.GONE
+            if (authResult != null) {
+                startActivity(Intent(this, DashboardActivity::class.java))
+                finish()
             }
+        }
+
+        viewModel.error.observe(this) { errorMsg ->
+            binding.progressBar.visibility = View.GONE
+            Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
         }
     }
 }

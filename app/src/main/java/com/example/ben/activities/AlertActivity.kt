@@ -4,17 +4,18 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.ben.databinding.ActivityAlertBinding
 import com.example.ben.models.Alert
-import com.example.ben.models.User
 import com.example.ben.utils.FirebaseUtils
+import com.example.ben.viewmodels.AlertViewModel
 import java.util.*
 
 class AlertActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAlertBinding
-    private var userName: String = ""
+    private val viewModel: AlertViewModel by viewModels()
     private val calendar = Calendar.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,62 +25,36 @@ class AlertActivity : AppCompatActivity() {
 
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        fetchUserName()
+        binding.etSprayDate.setOnClickListener { showDatePicker() }
+        binding.etSprayTime.setOnClickListener { showTimePicker() }
 
-        binding.etSprayDate.setOnClickListener {
-            showDatePicker()
-        }
+        binding.btnSendAlert.setOnClickListener { sendAlert() }
 
-        binding.etSprayTime.setOnClickListener {
-            showTimePicker()
-        }
-
-        binding.btnSendAlert.setOnClickListener {
-            sendAlert()
+        viewModel.status.observe(this) { msg ->
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            if (msg.contains("successfully")) finish()
         }
     }
 
     private fun showDatePicker() {
-        val datePicker = DatePickerDialog(
-            this,
-            { _, year, month, dayOfMonth ->
-                binding.etSprayDate.setText("$dayOfMonth/${month + 1}/$year")
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePicker.show()
+        DatePickerDialog(this, { _, year, month, day ->
+            binding.etSprayDate.setText("$day/${month + 1}/$year")
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
     }
 
     private fun showTimePicker() {
-        val timePicker = TimePickerDialog(
-            this,
-            { _, hourOfDay, minute ->
-                binding.etSprayTime.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute))
-            },
-            calendar.get(Calendar.HOUR_OF_DAY),
-            calendar.get(Calendar.MINUTE),
-            true
-        )
-        timePicker.show()
-    }
-
-    private fun fetchUserName() {
-        val uid = FirebaseUtils.currentUserUid ?: return
-        FirebaseUtils.usersRef().child(uid).get().addOnSuccessListener {
-            val user = it.getValue(User::class.java)
-            userName = user?.name ?: "Unknown Farmer"
-        }
+        TimePickerDialog(this, { _, hour, minute ->
+            binding.etSprayTime.setText(String.format("%02d:%02d", hour, minute))
+        }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
     }
 
     private fun sendAlert() {
-        val date = binding.etSprayDate.text.toString().trim()
-        val time = binding.etSprayTime.text.toString().trim()
-        val pesticide = binding.etPesticide.text.toString().trim()
+        val date = binding.etSprayDate.text.toString()
+        val time = binding.etSprayTime.text.toString()
+        val pesticide = binding.etPesticide.text.toString()
 
         if (date.isEmpty() || time.isEmpty()) {
-            Toast.makeText(this, "Please select date and time", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Select date and time", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -87,23 +62,15 @@ class AlertActivity : AppCompatActivity() {
         val alert = Alert(
             id = alertId,
             farmerId = FirebaseUtils.currentUserUid ?: "",
-            farmerName = userName,
-            latitude = 12.9716, // Default for demo
+            farmerName = "A Farmer", // This should be fetched from Profile
+            latitude = 12.9716, // Should be actual GPS location
             longitude = 77.5946,
+            sprayDate = date,
+            sprayTime = time,
+            pesticide = pesticide,
             timestamp = System.currentTimeMillis(),
-            message = "Spraying scheduled on $date at $time",
-            date = date,
-            time = time,
-            pesticide = pesticide
+            message = "Spraying scheduled on $date at $time"
         )
-
-        FirebaseUtils.alertsRef().child(alertId).setValue(alert)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Alert sent successfully!", Toast.LENGTH_SHORT).show()
-                finish()
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Failed to send alert: ${it.message}", Toast.LENGTH_SHORT).show()
-            }
+        viewModel.sendAlert(alert)
     }
 }

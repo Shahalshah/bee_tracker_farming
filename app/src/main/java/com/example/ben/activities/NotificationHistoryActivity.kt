@@ -2,21 +2,17 @@ package com.example.ben.activities
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.ben.adapters.AlertAdapter
 import com.example.ben.databinding.ActivityNotificationHistoryBinding
-import com.example.ben.models.Alert
-import com.example.ben.utils.FirebaseUtils
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
+import com.example.ben.viewmodels.AlertViewModel
 
 class NotificationHistoryActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityNotificationHistoryBinding
-    private val alertList = mutableListOf<Alert>()
+    private val viewModel: AlertViewModel by viewModels()
     private lateinit var adapter: AlertAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,33 +23,21 @@ class NotificationHistoryActivity : AppCompatActivity() {
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         setupRecyclerView()
-        loadNotifications()
+        observeViewModel()
+        viewModel.fetchAlerts()
     }
 
     private fun setupRecyclerView() {
-        adapter = AlertAdapter(alertList)
+        adapter = AlertAdapter(emptyList())
         binding.rvNotifications.layoutManager = LinearLayoutManager(this)
         binding.rvNotifications.adapter = adapter
     }
 
-    private fun loadNotifications() {
-        FirebaseUtils.alertsRef().addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                alertList.clear()
-                for (alertSnapshot in snapshot.children) {
-                    val alert = alertSnapshot.getValue(Alert::class.java)
-                    alert?.let { alertList.add(0, it) } // Newest first
-                }
-                adapter.notifyDataSetChanged()
-                
-                if (alertList.isEmpty()) {
-                    Toast.makeText(this@NotificationHistoryActivity, "No notifications found", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@NotificationHistoryActivity, "Failed to load notifications", Toast.LENGTH_SHORT).show()
-            }
-        })
+    private fun observeViewModel() {
+        viewModel.alerts.observe(this) { list ->
+            adapter = AlertAdapter(list)
+            binding.rvNotifications.adapter = adapter
+            binding.tvNoNotifications.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+        }
     }
 }

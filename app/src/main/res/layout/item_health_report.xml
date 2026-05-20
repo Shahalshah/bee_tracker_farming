@@ -4,13 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="2dp">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
         <TextView
@@ -19,22 +18,36 @@
             android:layout_height="wrap_content"
             android:text="Date"
             android:textStyle="bold"
-            android:textColor="@color/dark_green"/>
+            android:textColor="@color/primary_green"/>
+
+        <ImageButton
+            android:id="@+id/btnDelete"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_delete"
+            app:tint="#FF5252"
+            android:contentDescription="Delete"/>
 
         <TextView
             android:id="@+id/tvStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Honey: 5kg | Status: Healthy"
-            android:layout_marginTop="4dp"/>
+            android:layout_below="@id/tvDate"
+            android:text="Hive: HIVE-01 | Healthy"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/text_dark"
+            android:textStyle="bold"/>
 
         <TextView
             android:id="@+id/tvNotes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@id/tvStats"
             android:text="Notes go here..."
             android:textSize="12sp"
             android:layout_marginTop="8dp"
-            android:textColor="#757575"/>
-    </LinearLayout>
+            android:textColor="@color/text_gray"/>
+    </RelativeLayout>
 </androidx.cardview.widget.CardView>

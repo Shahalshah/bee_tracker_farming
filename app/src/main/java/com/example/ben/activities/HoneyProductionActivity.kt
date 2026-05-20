@@ -3,22 +3,21 @@ package com.example.ben.activities
 import android.app.DatePickerDialog
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.ben.adapters.HoneyRecordAdapter
 import com.example.ben.databinding.ActivityHoneyProductionBinding
 import com.example.ben.models.HoneyRecord
 import com.example.ben.utils.FirebaseUtils
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
+import com.example.ben.viewmodels.HoneyViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 class HoneyProductionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHoneyProductionBinding
-    private val productionList = mutableListOf<HoneyRecord>()
+    private val viewModel: HoneyViewModel by viewModels()
     private lateinit var adapter: HoneyRecordAdapter
     private val calendar = Calendar.getInstance()
 
@@ -30,82 +29,59 @@ class HoneyProductionActivity : AppCompatActivity() {
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         setupRecyclerView()
-        loadProductionRecords()
+        observeViewModel()
+        viewModel.fetchRecords()
 
-        binding.etHarvestDate.setOnClickListener {
-            showDatePicker()
-        }
-
-        binding.btnSaveProduction.setOnClickListener {
-            saveRecord()
-        }
+        binding.etHarvestDate.setOnClickListener { showDatePicker() }
+        binding.btnSaveProduction.setOnClickListener { saveRecord() }
     }
 
     private fun setupRecyclerView() {
-        adapter = HoneyRecordAdapter(productionList)
+        adapter = HoneyRecordAdapter(emptyList()) { recordId ->
+            viewModel.deleteRecord(recordId)
+        }
         binding.rvProductionHistory.layoutManager = LinearLayoutManager(this)
         binding.rvProductionHistory.adapter = adapter
     }
 
-    private fun showDatePicker() {
-        val datePicker = DatePickerDialog(
-            this,
-            { _, year, month, dayOfMonth ->
-                val selectedDate = Calendar.getInstance()
-                selectedDate.set(year, month, dayOfMonth)
-                val format = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                binding.etHarvestDate.setText(format.format(selectedDate.time))
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePicker.show()
+    private fun observeViewModel() {
+        viewModel.records.observe(this) { list ->
+            adapter.updateData(list)
+        }
+        viewModel.status.observe(this) { msg ->
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun loadProductionRecords() {
-        val uid = FirebaseUtils.currentUserUid ?: return
-        FirebaseUtils.database.getReference("honey_production").child(uid)
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    productionList.clear()
-                    for (recordSnapshot in snapshot.children) {
-                        val record = recordSnapshot.getValue(HoneyRecord::class.java)
-                        record?.let { productionList.add(0, it) }
-                    }
-                    adapter.notifyDataSetChanged()
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(this@HoneyProductionActivity, "Failed to load records", Toast.LENGTH_SHORT).show()
-                }
-            })
+    private fun showDatePicker() {
+        DatePickerDialog(this, { _, year, month, day ->
+            val selected = Calendar.getInstance()
+            selected.set(year, month, day)
+            val format = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+            binding.etHarvestDate.setText(format.format(selected.time))
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
     }
 
     private fun saveRecord() {
-        val quantityStr = binding.etHoneyYield.text.toString()
+        val qty = binding.etHoneyYield.text.toString().toDoubleOrNull() ?: 0.0
+        val quality = binding.etQuality.text.toString().trim()
         val date = binding.etHarvestDate.text.toString()
+        val notes = binding.etNotes.text.toString().trim()
 
-        if (quantityStr.isEmpty() || date.isEmpty()) {
-            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
+        if (qty == 0.0 || date.isEmpty()) {
+            Toast.makeText(this, "Fill required fields", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val quantity = quantityStr.toDoubleOrNull() ?: 0.0
         val uid = FirebaseUtils.currentUserUid ?: return
-        val ref = FirebaseUtils.database.getReference("honey_production").child(uid)
-        val recordId = ref.push().key ?: return
+        val recordId = FirebaseUtils.database.getReference("honey_production").child(uid).push().key ?: return
         
-        val record = HoneyRecord(recordId, uid, quantity, date)
-
-        ref.child(recordId).setValue(record)
-            .addOnSuccessListener {
-                binding.etHoneyYield.setText("")
-                binding.etHarvestDate.setText("")
-                Toast.makeText(this, "Record saved successfully!", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Failed to save record", Toast.LENGTH_SHORT).show()
-            }
+        val record = HoneyRecord(recordId, uid, date, qty, quality, notes)
+        viewModel.saveRecord(record)
+        
+        binding.etHoneyYield.setText("")
+        binding.etQuality.setText("")
+        binding.etHarvestDate.setText("")
+        binding.etNotes.setText("")
     }
 }

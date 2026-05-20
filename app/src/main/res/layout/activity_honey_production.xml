@@ -30,21 +30,19 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Log Honey Production"
-                    android:textStyle="bold"
-                    android:textSize="18sp"
-                    android:layout_marginBottom="12dp"/>
-
                 <EditText
                     android:id="@+id/etHoneyYield"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Honey Produced (kg)"
-                    android:inputType="numberDecimal"
-                    android:layout_marginBottom="12dp"/>
+                    android:hint="Quantity (kg)"
+                    android:inputType="numberDecimal" />
+
+                <EditText
+                    android:id="@+id/etQuality"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Quality (e.g. Premium)"
+                    android:inputType="text" />
 
                 <EditText
                     android:id="@+id/etHarvestDate"
@@ -52,13 +50,20 @@
                     android:layout_height="wrap_content"
                     android:hint="Harvest Date"
                     android:focusable="false"
-                    android:clickable="true"
-                    android:layout_marginBottom="16dp"/>
+                    android:clickable="true" />
+
+                <EditText
+                    android:id="@+id/etNotes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Notes"
+                    android:inputType="textMultiLine" />
 
                 <Button
                     android:id="@+id/btnSaveProduction"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
                     android:text="Save Record"
                     android:backgroundTint="@color/button_green"
                     android:textColor="@color/white"/>

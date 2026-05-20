@@ -1,43 +1,42 @@
-# Madhu-Siri (Agriculture) – Bee-Farmer Harmony App Setup Guide
+# Madhu-Siri (Bee-Farmer Harmony App) Setup Guide
 
-## 1. Firebase Integration
+## 1. Firebase Setup
 1. Go to [Firebase Console](https://console.firebase.google.com/).
 2. Create a new project named "Madhu-Siri".
-3. Add an Android App:
-   - Package name: `com.example.ben`
-4. Download `google-services.json` and place it in the `app/` folder.
-5. Enable **Authentication**:
-   - Go to Build > Authentication > Get Started.
-   - Enable **Email/Password** sign-in method.
-6. Enable **Realtime Database**:
-   - Go to Build > Realtime Database > Create Database.
-   - Choose a location and start in **test mode** (or set rules for authenticated users).
-7. Enable **Cloud Messaging (FCM)** for notifications (automatic setup with Firebase).
+3. Add an Android App with package name `com.example.ben`.
+4. Download `google-services.json` and place it in the `app/` directory.
+5. Enable **Authentication** (Email/Password).
+6. Enable **Realtime Database** (Start in test mode or set rules).
+7. Enable **Cloud Messaging** (FCM).
 
-## 2. Google Maps API Integration
+### Firebase Security Rules (Realtime Database)
+```json
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}
+```
+
+## 2. Google Maps API Setup
 1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a project and enable "Maps SDK for Android".
-3. Create an API Key in APIs & Services > Credentials.
-4. Open `AndroidManifest.xml` in Android Studio.
-5. Replace `YOUR_GOOGLE_MAPS_API_KEY_HERE` with your actual API key in the `<meta-data>` tag.
+2. Enable **Maps SDK for Android**.
+3. Create an API Key in **Credentials**.
+4. Restrict the key to your Android app (optional but recommended).
+5. Open `AndroidManifest.xml` and replace the value in `com.google.android.geo.API_KEY` with your key.
 
-## 3. Running the App
-1. Sync project with Gradle files.
-2. Connect an Android device or use an Emulator.
-3. Click "Run" in Android Studio.
+## 3. SHA-1 Generation (Required for Google Maps/Auth)
+Run the following command in Android Studio Terminal:
+```bash
+./gradlew signingReport
+```
+Copy the SHA-1 from the `debug` variant and add it to your Firebase project settings.
 
-## 4. App Features
-- **Splash Screen**: Professional intro.
-- **Login/Signup**: Role selection (Farmer/Beekeeper).
-- **Dashboard**: Role-based access to features.
-- **Hive Map**: Beekeepers long-press to add hives; Farmers view all hives.
-- **Spray Alerts**: Farmers send alerts; everyone views the alert history.
-- **Health Tracker**: Beekeepers log honey production and hive health.
-- **Bee Tips**: Educational content for bee protection.
+## 4. FCM Setup
+To test push notifications, use the Firebase Console -> Cloud Messaging -> New Campaign. Target the app by its package name or a specific FCM token.
 
-## 5. Project Architecture
-- **Language**: Kotlin
-- **UI**: XML Layouts with ViewBinding
-- **Database**: Firebase Realtime Database
-- **Auth**: Firebase Authentication
-- **Theme**: Nature-inspired (Green, Yellow, Honey tones)
+## 5. Running the Project
+1. Clean and Rebuild the project in Android Studio.
+2. Run on an Emulator or Physical device with Google Play Services.
+3. Grant Location permissions when prompted.
