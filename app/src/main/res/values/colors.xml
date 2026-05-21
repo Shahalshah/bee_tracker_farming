@@ -4,26 +4,25 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Madhu-Siri Theme Colors -->
-    <color name="primary_green">#4A7C44</color>
-    <color name="primary_dark">#2E4B28</color>
-    <color name="accent_green">#7BA66D</color>
+    <color name="primary_green">#388E3C</color>
+    <color name="primary_dark">#1B5E20</color>
+    <color name="accent_green">#81C784</color>
 
-    <color name="background_cream">#FDF9EB</color>
+    <color name="background_cream">#F9FBE7</color>
     <color name="card_bg">#FFFFFF</color>
 
-    <color name="text_dark">#1B3018</color>
+    <color name="text_dark">#212121</color>
     <color name="text_gray">#757575</color>
 
-    <color name="honey_yellow">#FFC107</color>
-    <color name="honey_orange">#FF9800</color>
-    <color name="alert_red">#E53935</color>
+    <color name="honey_yellow">#FBC02D</color>
+    <color name="honey_orange">#F57C00</color>
+    <color name="alert_red">#D32F2F</color>
 
-    <color name="card_action_alert">#FFE4E1</color>
+    <color name="card_action_alert">#FFEBEE</color>
     <color name="card_action_map">#E8F5E9</color>
     <color name="card_action_tips">#FFF9C4</color>
     <color name="card_action_honey">#F3E5F5</color>
-    <color name="card_action_history">#E1F5FE</color>
+    <color name="card_action_history">#E3F2FD</color>
 
-    <color name="button_green">#4A7C44</color>
-    <color name="dark_green">#2E4B28</color>
+    <color name="button_green">#43A047</color>
 </resources>

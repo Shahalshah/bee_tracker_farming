@@ -23,8 +23,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
         
-        val title = remoteMessage.notification?.title ?: "Spray Alert"
-        val message = remoteMessage.notification?.body ?: "A farmer is spraying nearby!"
+        val title = remoteMessage.notification?.title ?: "Madhu-Siri Alert"
+        val message = remoteMessage.notification?.body ?: "New spray alert from a nearby farmer!"
         
         sendNotification(title, message)
     }
@@ -37,7 +37,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     private fun sendNotification(title: String, message: String) {
         val intent = Intent(this, DashboardActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 
+            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
 
         val channelId = "madhu_siri_alerts"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
@@ -51,10 +52,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Spray Alerts", NotificationManager.IMPORTANCE_HIGH)
+            val channel = NotificationChannel(channelId, "Spray Alerts", 
+                NotificationManager.IMPORTANCE_HIGH)
             notificationManager.createNotificationChannel(channel)
         }
 
-        notificationManager.notify(0, notificationBuilder.build())
+        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
     }
 }

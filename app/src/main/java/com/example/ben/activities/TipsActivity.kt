@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.ben.databinding.ActivityTipsBinding
 
 class TipsActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityTipsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -12,8 +13,6 @@ class TipsActivity : AppCompatActivity() {
         binding = ActivityTipsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.toolbar.setNavigationOnClickListener {
-            finish()
-        }
+        binding.toolbar.setNavigationOnClickListener { finish() }
     }
 }

@@ -21,7 +21,7 @@ class HoneyRecordAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val record = records[position]
         holder.binding.tvQuantity.text = "${record.quantity} kg (${record.quality})"
-        holder.binding.tvDate.text = record.harvestDate
+        holder.binding.tvDate.text = "Harvested: ${record.harvestDate}"
         
         holder.binding.btnDelete.setOnClickListener {
             onDelete(record.id)

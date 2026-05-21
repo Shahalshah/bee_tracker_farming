@@ -8,7 +8,7 @@ import com.google.firebase.database.DataSnapshot
 
 class AuthRepository {
     private val auth = FirebaseUtils.auth
-    private val db = FirebaseUtils.usersRef()
+    private val usersRef = FirebaseUtils.usersRef()
 
     fun login(email: String, pass: String): Task<AuthResult> {
         return auth.signInWithEmailAndPassword(email, pass)
@@ -19,11 +19,11 @@ class AuthRepository {
     }
 
     fun saveUser(user: User): Task<Void> {
-        return db.child(user.uid).setValue(user)
+        return usersRef.child(user.uid).setValue(user)
     }
 
     fun getUserData(uid: String): Task<DataSnapshot> {
-        return db.child(uid).get()
+        return usersRef.child(uid).get()
     }
 
     fun logout() {
@@ -32,5 +32,9 @@ class AuthRepository {
 
     fun forgotPassword(email: String): Task<Void> {
         return auth.sendPasswordResetEmail(email)
+    }
+
+    fun updateFcmToken(uid: String, token: String): Task<Void> {
+        return usersRef.child(uid).child("fcmToken").setValue(token)
     }
 }

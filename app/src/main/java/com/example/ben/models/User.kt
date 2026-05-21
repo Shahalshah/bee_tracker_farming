@@ -6,5 +6,6 @@ data class User(
     val email: String = "",
     val phone: String = "",
     val role: String = "", // "Farmer" or "Beekeeper"
-    val fcmToken: String = ""
+    val fcmToken: String = "",
+    val profileImage: String = ""
 )

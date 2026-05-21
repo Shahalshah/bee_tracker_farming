@@ -1,35 +1,61 @@
 package com.example.ben.activities
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
+import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.ben.R
 import com.example.ben.databinding.ActivityMapBinding
 import com.example.ben.models.Hive
 import com.example.ben.utils.FirebaseUtils
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.example.ben.viewmodels.AuthViewModel
+import com.example.ben.viewmodels.MainViewModel
+import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
+import com.google.android.material.snackbar.Snackbar
 
 class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
+    private val TAG = "MapActivityDebug"
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    
+    private val mainViewModel: MainViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
+    
     private var action: String = ""
+    private var userRole: String = ""
+    private var currentLatLng: LatLng? = null
     private var currentCircle: Circle? = null
+    
+    // Track markers to avoid flickering and improve performance
+    private val hiveMarkers = mutableMapOf<String, Marker>()
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true || 
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            enableMyLocation()
+        } else {
+            Toast.makeText(this, "Location permission required for best experience", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,138 +67,169 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
+        setupObservers()
+        
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+        
+        FirebaseUtils.currentUserUid?.let { authViewModel.fetchUserData(it) }
+    }
+
+    private fun setupObservers() {
+        authViewModel.userData.observe(this) { user ->
+            user?.let { userRole = it.role }
+        }
+
+        mainViewModel.hives.observe(this) { hives ->
+            if (::mMap.isInitialized) {
+                updateMapMarkers(hives)
+            }
+        }
+
+        mainViewModel.loading.observe(this) { isLoading ->
+            // Subtle loading, don't block interaction
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+
+        mainViewModel.status.observe(this) { status ->
+            status?.let {
+                Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+                mainViewModel.clearStatus()
+            }
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.isMyLocationEnabled = true
-            getCurrentLocation()
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 100)
-            // Fallback to default
-            val defaultLocation = LatLng(12.9716, 77.5946)
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 14f))
-            updateCircle(defaultLocation)
+        mMap.uiSettings.apply {
+            isZoomControlsEnabled = false
+            isMyLocationButtonEnabled = true
+            isCompassEnabled = true
+            isMapToolbarEnabled = false
         }
 
-        loadHives()
+        checkLocationPermissions()
+        mainViewModel.fetchAllHives()
 
-        // Always allow pinning a hive on click or long press
         mMap.setOnMapClickListener { latLng ->
-            if (action == "ADD_HIVE") {
-                showAddHiveDialog(latLng)
-            } else {
-                Toast.makeText(this, "Location: ${latLng.latitude}, ${latLng.longitude}", Toast.LENGTH_SHORT).show()
+            if (userRole == "Beekeeper" || action == "ADD_HIVE") {
+                showPinDialog(latLng)
             }
         }
-
-        mMap.setOnMapLongClickListener { latLng ->
-            if (action == "ADD_HIVE") {
-                showAddHiveDialog(latLng)
-            }
-        }
-
+        
         if (action == "ADD_HIVE") {
-            com.google.android.material.snackbar.Snackbar.make(binding.root, "Tap on map to pin your hive location", com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE)
-                .setAction("Dismiss") { }
-                .show()
+            Snackbar.make(binding.root, "Tap on map to pin your hive location", Snackbar.LENGTH_SHORT).show()
         }
     }
 
+    private fun checkLocationPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation()
+        } else {
+            requestPermissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun enableMyLocation() {
+        mMap.isMyLocationEnabled = true
+        getCurrentLocation()
+    }
+
+    @SuppressLint("MissingPermission")
     private fun getCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
-        
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
-                val currentLatLng = LatLng(location.latitude, location.longitude)
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
-                updateCircle(currentLatLng)
+                val latLng = LatLng(location.latitude, location.longitude)
+                currentLatLng = latLng
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
+                drawRadiusCircle(latLng)
             } else {
-                val defaultLocation = LatLng(12.9716, 77.5946)
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 14f))
-                updateCircle(defaultLocation)
+                requestFreshLocation()
             }
         }
     }
 
-    private fun updateCircle(center: LatLng) {
+    @SuppressLint("MissingPermission")
+    private fun requestFreshLocation() {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 5000)
+            .setMaxUpdates(1)
+            .build()
+
+        fusedLocationClient.requestLocationUpdates(locationRequest, object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let { location ->
+                    val latLng = LatLng(location.latitude, location.longitude)
+                    currentLatLng = latLng
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
+                    drawRadiusCircle(latLng)
+                }
+            }
+        }, null)
+    }
+
+    private fun drawRadiusCircle(center: LatLng) {
         currentCircle?.remove()
         currentCircle = mMap.addCircle(CircleOptions()
             .center(center)
             .radius(2000.0)
             .strokeWidth(2f)
-            .strokeColor(Color.BLUE)
-            .fillColor(0x220000FF))
+            .strokeColor(Color.parseColor("#4CAF50"))
+            .fillColor(Color.parseColor("#224CAF50")))
     }
 
-    private fun showAddHiveDialog(latLng: LatLng) {
-        // Clear previous temporary markers
-        mMap.clear()
-        loadHives() // This will redraw everything including the circle
-        
-        // Add a temporary marker to show where the user clicked
-        mMap.addMarker(MarkerOptions()
+    private fun updateMapMarkers(hives: List<Hive>) {
+        // Find hives that are no longer in the list
+        val currentHiveIds = hives.map { it.id }.toSet()
+        val markersToRemove = hiveMarkers.filter { it.key !in currentHiveIds }
+        markersToRemove.forEach { (id, marker) ->
+            marker.remove()
+            hiveMarkers.remove(id)
+        }
+
+        // Add or update markers
+        hives.forEach { hive ->
+            val pos = LatLng(hive.latitude, hive.longitude)
+            if (hiveMarkers.containsKey(hive.id)) {
+                hiveMarkers[hive.id]?.position = pos
+            } else {
+                val marker = mMap.addMarker(MarkerOptions()
+                    .position(pos)
+                    .title(hive.name)
+                    .snippet("Status: ${hive.status}")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)))
+                if (marker != null) {
+                    hiveMarkers[hive.id] = marker
+                }
+            }
+        }
+    }
+
+    private fun showPinDialog(latLng: LatLng) {
+        // Optimistic marker: place it instantly
+        val tempId = "temp_${System.currentTimeMillis()}"
+        val tempMarker = mMap.addMarker(MarkerOptions()
             .position(latLng)
-            .title("New Hive Location")
+            .title("Selected Location")
             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)))
 
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Add Hive")
-            .setMessage("Do you want to add a hive at this location?")
-            .setPositiveButton("Yes") { _, _ ->
+            .setTitle("Pin Hive Here?")
+            .setMessage("Lat: ${String.format("%.5f", latLng.latitude)}\nLng: ${String.format("%.5f", latLng.longitude)}")
+            .setPositiveButton("Proceed") { _, _ ->
                 val intent = Intent(this, AddHiveActivity::class.java)
                 intent.putExtra("LAT", latLng.latitude)
                 intent.putExtra("LNG", latLng.longitude)
                 startActivity(intent)
+                tempMarker?.remove()
             }
-            .setNegativeButton("No") { _, _ ->
-                // Refresh to remove the blue marker
-                mMap.clear()
-                val circleCenter = currentCircle?.center ?: LatLng(12.9716, 77.5946)
-                updateCircle(circleCenter)
-                loadHives()
+            .setNegativeButton("Cancel") { _, _ ->
+                tempMarker?.remove()
             }
+            .setOnCancelListener { tempMarker?.remove() }
             .show()
-    }
-
-    private fun loadHives() {
-        FirebaseUtils.hivesRef().addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (!::mMap.isInitialized) return
-                
-                // Clear existing markers (excluding the current temporary one if any)
-                // Actually, clear and redraw everything is cleaner for real-time
-                mMap.clear()
-                
-                val circleCenter = currentCircle?.center ?: LatLng(12.9716, 77.5946)
-                updateCircle(circleCenter)
-
-                var count = 0
-                for (hiveSnapshot in snapshot.children) {
-                    val hive = hiveSnapshot.getValue(Hive::class.java)
-                    if (hive != null) {
-                        val pos = LatLng(hive.latitude, hive.longitude)
-                        mMap.addMarker(MarkerOptions()
-                            .position(pos)
-                            .title(hive.name)
-                            .snippet(hive.description)
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)))
-                        count++
-                    }
-                }
-                if (count > 0) {
-                    Toast.makeText(this@MapActivity, "Loaded $count hives", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@MapActivity, "Failed to load hives: ${error.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
     }
 }

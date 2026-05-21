@@ -21,8 +21,8 @@ class HealthReportAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val report = reports[position]
         holder.binding.tvDate.text = report.date
-        holder.binding.tvStats.text = "Hive: ${report.hiveId} | ${report.colonyCondition}"
-        holder.binding.tvNotes.text = "${report.diseases}\n${report.notes}"
+        holder.binding.tvStats.text = "Hive: ${report.hiveId} | Condition: ${report.colonyCondition}"
+        holder.binding.tvNotes.text = "Population: ${report.population}\nNotes: ${report.notes}"
         
         holder.binding.btnDelete.setOnClickListener {
             onDelete(report.id)

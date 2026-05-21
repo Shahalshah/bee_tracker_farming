@@ -6,9 +6,10 @@ data class Alert(
     val farmerName: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
+    val pesticideName: String = "",
     val sprayDate: String = "",
     val sprayTime: String = "",
-    val pesticide: String = "",
+    val notes: String = "",
     val timestamp: Long = 0L,
     val message: String = ""
 )

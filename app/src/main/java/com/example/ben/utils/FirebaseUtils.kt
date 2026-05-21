@@ -5,8 +5,17 @@ import com.google.firebase.database.FirebaseDatabase
 
 object FirebaseUtils {
     val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    val database: FirebaseDatabase by lazy { 
-        FirebaseDatabase.getInstance("https://beee-1db3f-default-rtdb.firebaseio.com/")
+    
+    // Explicitly handle database instance to avoid hanging and URL issues
+    val database: FirebaseDatabase by lazy {
+        val db = try {
+            FirebaseDatabase.getInstance() 
+        } catch (e: Exception) {
+            FirebaseDatabase.getInstance("https://beee-1db3f-default-rtdb.firebaseio.com/")
+        }
+        // ENABLE persistence for instant local updates and offline support
+        db.setPersistenceEnabled(true)
+        db
     }
     
     val currentUserUid: String?
@@ -16,4 +25,5 @@ object FirebaseUtils {
     fun hivesRef() = database.getReference("hives")
     fun alertsRef() = database.getReference("alerts")
     fun healthReportsRef() = database.getReference("health_reports")
+    fun honeyProductionRef() = database.getReference("honey_production")
 }

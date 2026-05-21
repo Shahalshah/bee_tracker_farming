@@ -1,6 +1,7 @@
 package com.example.ben.fragments
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
@@ -10,9 +11,13 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import com.example.ben.R
+import com.example.ben.activities.AddHiveActivity
 import com.example.ben.databinding.FragmentMapBinding
 import com.example.ben.models.Hive
-import com.example.ben.utils.FirebaseUtils
+import com.example.ben.viewmodels.AuthViewModel
+import com.example.ben.viewmodels.MainViewModel
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -20,16 +25,20 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
     private var _binding: FragmentMapBinding? = null
     private val binding get() = _binding!!
+    
     private lateinit var mMap: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val authViewModel: AuthViewModel by activityViewModels()
+    
+    private var userRole: String = ""
+    private var currentLatLng: LatLng? = null
     private var currentCircle: Circle? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -41,12 +50,27 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         super.onViewCreated(view, savedInstanceState)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         
-        val mapFragment = childFragmentManager.findFragmentById(com.example.ben.R.id.map) as SupportMapFragment?
+        val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
         mapFragment?.getMapAsync(this)
+        
+        setupObservers()
+    }
+
+    private fun setupObservers() {
+        authViewModel.userData.observe(viewLifecycleOwner) { user ->
+            user?.let { userRole = it.role }
+        }
+
+        mainViewModel.hives.observe(viewLifecycleOwner) { hives ->
+            if (::mMap.isInitialized) {
+                updateMapMarkers(hives)
+            }
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+        mMap.uiSettings.isZoomControlsEnabled = true
 
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
@@ -55,42 +79,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 100)
         }
 
-        loadHives()
+        mainViewModel.fetchAllHives()
 
         mMap.setOnMapClickListener { latLng ->
-            checkRoleAndShowPinDialog(latLng)
-        }
-    }
-
-    private fun checkRoleAndShowPinDialog(latLng: LatLng) {
-        val uid = FirebaseUtils.currentUserUid ?: return
-        
-        // Add a temporary blue marker
-        val tempMarker = mMap.addMarker(MarkerOptions()
-            .position(latLng)
-            .title("New Hive?")
-            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)))
-
-        FirebaseUtils.usersRef().child(uid).child("role").get().addOnSuccessListener { snapshot ->
-            if (snapshot.value == "Beekeeper") {
-                androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                    .setTitle("Add Hive")
-                    .setMessage("Do you want to add a hive at this location?")
-                    .setPositiveButton("Yes") { _, _ ->
-                        val intent = android.content.Intent(requireContext(), com.example.ben.activities.AddHiveActivity::class.java)
-                        intent.putExtra("LAT", latLng.latitude)
-                        intent.putExtra("LNG", latLng.longitude)
-                        startActivity(intent)
-                    }
-                    .setNegativeButton("No") { _, _ -> tempMarker?.remove() }
-                    .setOnCancelListener { tempMarker?.remove() }
-                    .show()
-            } else {
-                tempMarker?.remove()
-                Toast.makeText(requireContext(), "Only beekeepers can pin hives", Toast.LENGTH_SHORT).show()
+            if (userRole == "Beekeeper") {
+                showPinDialog(latLng)
             }
-        }.addOnFailureListener {
-            tempMarker?.remove()
         }
     }
 
@@ -99,14 +93,15 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
-                val currentLatLng = LatLng(location.latitude, location.longitude)
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
-                updateCircle(currentLatLng)
+                val latLng = LatLng(location.latitude, location.longitude)
+                currentLatLng = latLng
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
+                drawRadiusCircle(latLng)
             }
         }
     }
 
-    private fun updateCircle(center: LatLng) {
+    private fun drawRadiusCircle(center: LatLng) {
         currentCircle?.remove()
         currentCircle = mMap.addCircle(CircleOptions()
             .center(center)
@@ -116,28 +111,32 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             .fillColor(0x220000FF))
     }
 
-    private fun loadHives() {
-        FirebaseUtils.hivesRef().addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (!::mMap.isInitialized) return
-                mMap.clear()
-                currentCircle?.center?.let { updateCircle(it) }
+    private fun updateMapMarkers(hives: List<Hive>) {
+        mMap.clear()
+        currentLatLng?.let { drawRadiusCircle(it) }
 
-                for (hiveSnapshot in snapshot.children) {
-                    val hive = hiveSnapshot.getValue(Hive::class.java)
-                    hive?.let {
-                        val pos = LatLng(it.latitude, it.longitude)
-                        mMap.addMarker(MarkerOptions()
-                            .position(pos)
-                            .title(it.name)
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)))
-                    }
-                }
+        hives.forEach { hive ->
+            val pos = LatLng(hive.latitude, hive.longitude)
+            mMap.addMarker(MarkerOptions()
+                .position(pos)
+                .title(hive.name)
+                .snippet(hive.status)
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)))
+        }
+    }
+
+    private fun showPinDialog(latLng: LatLng) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Add Hive Location")
+            .setMessage("Do you want to add a hive at this location?")
+            .setPositiveButton("Yes") { _, _ ->
+                val intent = Intent(requireContext(), AddHiveActivity::class.java)
+                intent.putExtra("LAT", latLng.latitude)
+                intent.putExtra("LNG", latLng.longitude)
+                startActivity(intent)
             }
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(requireContext(), error.message, Toast.LENGTH_SHORT).show()
-            }
-        })
+            .setNegativeButton("No", null)
+            .show()
     }
 
     override fun onDestroyView() {

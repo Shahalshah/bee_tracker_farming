@@ -7,6 +7,7 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.example.ben.R
 import com.example.ben.databinding.ActivitySignupBinding
 import com.example.ben.models.User
 import com.example.ben.viewmodels.AuthViewModel
@@ -22,8 +23,39 @@ class SignupActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupRoleSpinner()
-        observeViewModel()
+        setupObservers()
+        setupClickListeners()
+    }
 
+    private fun setupRoleSpinner() {
+        val roles = arrayOf("Farmer", "Beekeeper")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, roles)
+        binding.spinnerRole.adapter = adapter
+    }
+
+    private fun setupObservers() {
+        viewModel.userData.observe(this) { user ->
+            if (user != null) {
+                Toast.makeText(this, "Account created successfully", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, DashboardActivity::class.java))
+                finishAffinity()
+            }
+        }
+
+        viewModel.error.observe(this) { error ->
+            error?.let {
+                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+        }
+
+        viewModel.loading.observe(this) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            binding.btnSignup.isEnabled = !isLoading
+        }
+    }
+
+    private fun setupClickListeners() {
         binding.btnSignup.setOnClickListener {
             val name = binding.etName.text.toString().trim()
             val email = binding.etEmail.text.toString().trim()
@@ -36,35 +68,15 @@ class SignupActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            if (pass.length < 6) {
+                Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             val user = User(name = name, email = email, phone = phone, role = role)
-            binding.progressBar.visibility = View.VISIBLE
             viewModel.signup(user, pass)
         }
 
-        binding.tvLogin.setOnClickListener {
-            finish()
-        }
-    }
-
-    private fun setupRoleSpinner() {
-        val roles = arrayOf("Farmer", "Beekeeper")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, roles)
-        binding.spinnerRole.adapter = adapter
-    }
-
-    private fun observeViewModel() {
-        viewModel.userData.observe(this) { user ->
-            binding.progressBar.visibility = View.GONE
-            if (user != null) {
-                Toast.makeText(this, "Registration successful!", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this, DashboardActivity::class.java))
-                finishAffinity()
-            }
-        }
-
-        viewModel.error.observe(this) { errorMsg ->
-            binding.progressBar.visibility = View.GONE
-            Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
-        }
+        binding.tvLogin.setOnClickListener { finish() }
     }
 }

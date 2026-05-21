@@ -5,6 +5,7 @@ data class HoneyRecord(
     val beekeeperId: String = "",
     val harvestDate: String = "",
     val quantity: Double = 0.0,
-    val quality: String = "", // Premium, Standard, etc.
-    val notes: String = ""
+    val quality: String = "",
+    val notes: String = "",
+    val timestamp: Long = 0L
 )

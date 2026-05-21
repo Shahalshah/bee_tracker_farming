@@ -21,67 +21,45 @@
     <string name="no_account">Don\'t have an account? Sign up</string>
     <string name="already_account">Already have an account? Login</string>
 
-    <string name="welcome_user">Welcome, %1$s!</string>
-    <string name="hello_user">Hello, %1$s!</string>
     <string name="hello_beekeeper">Hello, Beekeeper!</string>
     <string name="hello_farmer">Hello, Farmer!</string>
-    <string name="beekeeper_banner_text">Healthy Bees, Happy Environment, Better Future 💚 🐝</string>
+    <string name="hello_user">Hello, %1$s!</string>
 
+    <string name="beekeeper_banner">Healthy Bees, Happy Environment, Better Future 💚 🐝</string>
+    <string name="farmer_banner">Let\'s protect our bees and crops together 🍃 🐝</string>
+
+    <string name="quick_actions">Quick Actions</string>
     <string name="view_hive_map">View Hive Map</string>
+    <string name="nearby_hives">Nearby Hives</string>
     <string name="spray_alert">Spray Alert</string>
     <string name="spraying_today">Spraying Today?</string>
+    <string name="spraying_today_sub">(Spraying Today)</string>
+    <string name="nearby_hives_sub">(Nearby Hives)</string>
     <string name="health_tracker">Hive Health Tracker</string>
     <string name="bee_tips">Bee-Friendly Tips</string>
     <string name="learn_protect">Learn &amp; Protect</string>
     <string name="notification_history">Notification History</string>
+    <string name="notifications">Notifications</string>
     <string name="profile">Profile</string>
     <string name="logout">Logout</string>
 
     <string name="add_hive_location">Add Hive Location</string>
     <string name="honey_production">Honey Production Records</string>
-
     <string name="send_alert">Send Alert</string>
+
     <string name="select_spray_date">Select Spray Date</string>
     <string name="select_spray_time">Select Spray Time</string>
-    <string name="pesticide_optional">Pesticide (Optional)</string>
+    <string name="alert_desc">Send an alert to nearby beekeepers within 2 km radius.</string>
+
+    <string name="alert_icon">Alert Icon</string>
+    <string name="user_avatar">User Avatar</string>
+    <string name="banner_image">Banner Image</string>
+
     <string name="home">Home</string>
     <string name="map">Map</string>
     <string name="alerts">Alerts</string>
     <string name="tips">Tips</string>
-    <string name="health">Health</string>
-    <string name="farmer_banner">Let\'s protect our\nbees and crops\ntogether 🍃 🐝</string>
-    <string name="beekeeper_banner">Healthy Bees,\nHappy Environment.\nBetter Future 💚 🐝</string>
-    <string name="quick_actions">Quick Actions</string>
-    <string name="spraying_today_sub">(Spraying Today)</string>
-    <string name="nearby_hives_sub">(Nearby Hives)</string>
-    <string name="user_avatar">User Avatar</string>
-    <string name="notifications">Notifications</string>
-    <string name="banner_image">Banner Image</string>
-    <string name="alert_desc">Send an alert to nearby beekeepers within 2 km radius.</string>
-    <string name="date_hint">27 May 2024</string>
-    <string name="time_hint">10:00 AM</string>
-    <string name="pesticide_hint">e.g. Imidacloprid</string>
-    <string name="alert_icon">Alert Icon</string>
-    <string name="nearby_hives">Nearby Hives</string>
-    <string name="your_location">Your Location</string>
-    <string name="beekeeper_hive">Beekeeper Hive</string>
-    <string name="radius_2km">2 km Radius</string>
-    <string name="all_tips">All Tips</string>
-    <string name="safe_pesticides">Safe Pesticides</string>
-    <string name="practices">Practices</string>
-    <string name="tip_icon">Tip Icon</string>
-    <string name="tip1_title">Use bee-safe pesticides</string>
-    <string name="tip1_desc">Choose pesticides less toxic to bees and follow recommended doses.</string>
-    <string name="tip2_title">Avoid spraying during blooming</string>
-    <string name="tip2_desc">Spray early morning or late evening when bees are not active.</string>
-    <string name="tip3_title">Provide flowering plants</string>
-    <string name="tip3_desc">Plant diverse flowers to provide nectar and pollen for bees.</string>
-    <string name="tip4_title">Protect water sources</string>
-    <string name="tip4_desc">Ensure clean water is available for bees in your fields.</string>
 
-    <string name="honey_produced_kg">Honey Produced (kg)</string>
-    <string name="health_status_hint">Health Status (e.g. Healthy)</string>
     <string name="additional_notes">Additional Notes</string>
     <string name="add_report">Add Report</string>
-    <string name="history_notification">History Notification</string>
 </resources>

@@ -5,17 +5,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.ben.adapters.AlertAdapter
 import com.example.ben.databinding.FragmentAlertsBinding
-import com.example.ben.viewmodels.AlertViewModel
+import com.example.ben.viewmodels.MainViewModel
 
 class AlertsFragment : Fragment() {
 
     private var _binding: FragmentAlertsBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: AlertViewModel by viewModels()
+    
+    private val viewModel: MainViewModel by activityViewModels()
     private lateinit var adapter: AlertAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -26,7 +27,7 @@ class AlertsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-        observeViewModel()
+        setupObservers()
         viewModel.fetchAlerts()
     }
 
@@ -36,11 +37,15 @@ class AlertsFragment : Fragment() {
         binding.rvAlerts.adapter = adapter
     }
 
-    private fun observeViewModel() {
+    private fun setupObservers() {
         viewModel.alerts.observe(viewLifecycleOwner) { list ->
             adapter = AlertAdapter(list)
             binding.rvAlerts.adapter = adapter
-            binding.tvNoAlerts.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+            binding.tvEmptyState.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+        }
+        
+        viewModel.loading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
     }
 

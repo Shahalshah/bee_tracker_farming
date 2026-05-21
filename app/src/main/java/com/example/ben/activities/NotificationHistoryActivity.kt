@@ -7,12 +7,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.ben.adapters.AlertAdapter
 import com.example.ben.databinding.ActivityNotificationHistoryBinding
-import com.example.ben.viewmodels.AlertViewModel
+import com.example.ben.viewmodels.MainViewModel
 
 class NotificationHistoryActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityNotificationHistoryBinding
-    private val viewModel: AlertViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModels()
     private lateinit var adapter: AlertAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +23,8 @@ class NotificationHistoryActivity : AppCompatActivity() {
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         setupRecyclerView()
-        observeViewModel()
+        setupObservers()
+        
         viewModel.fetchAlerts()
     }
 
@@ -33,11 +34,15 @@ class NotificationHistoryActivity : AppCompatActivity() {
         binding.rvNotifications.adapter = adapter
     }
 
-    private fun observeViewModel() {
+    private fun setupObservers() {
         viewModel.alerts.observe(this) { list ->
             adapter = AlertAdapter(list)
             binding.rvNotifications.adapter = adapter
-            binding.tvNoNotifications.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+            binding.tvEmptyState.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+        }
+
+        viewModel.loading.observe(this) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
     }
 }

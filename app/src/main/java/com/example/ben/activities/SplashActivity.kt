@@ -27,7 +27,7 @@ class SplashActivity : AppCompatActivity() {
 
         Handler(Looper.getMainLooper()).postDelayed({
             checkAuth()
-        }, 3000)
+        }, 2500)
     }
 
     private fun checkAuth() {

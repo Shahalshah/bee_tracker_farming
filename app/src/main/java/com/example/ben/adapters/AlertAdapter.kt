@@ -19,14 +19,14 @@ class AlertAdapter(private val alerts: List<Alert>) : RecyclerView.Adapter<Alert
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val alert = alerts[position]
-        holder.binding.tvAlertTitle.text = "Spray Alert: ${alert.farmerName}"
-        holder.binding.tvAlertMessage.text = alert.message
+        holder.binding.tvAlertTitle.text = "Spray Alert: ${alert.pesticideName}"
+        holder.binding.tvAlertMessage.text = "Farmer ${alert.farmerName} is spraying on ${alert.sprayDate} at ${alert.sprayTime}"
         
-        val date = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date(alert.timestamp))
-        holder.binding.tvAlertTime.text = date
+        val date = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date(alert.timestamp))
+        holder.binding.tvAlertTime.text = "Sent: $date"
         
-        if (alert.pesticide.isNotEmpty()) {
-            holder.binding.tvAlertMessage.text = "${alert.message}\nPesticide: ${alert.pesticide}"
+        if (alert.notes.isNotEmpty()) {
+            holder.binding.tvAlertMessage.text = "${holder.binding.tvAlertMessage.text}\nNotes: ${alert.notes}"
         }
     }
 

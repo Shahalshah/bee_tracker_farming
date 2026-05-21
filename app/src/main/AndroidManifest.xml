@@ -34,14 +34,14 @@
         <activity android:name=".activities.LoginActivity" />
         <activity android:name=".activities.SignupActivity" />
         <activity android:name=".activities.ForgotPasswordActivity" />
-        <activity android:name=".activities.AddHiveActivity" />
         <activity android:name=".activities.DashboardActivity" />
         <activity android:name=".activities.AlertActivity" />
         <activity android:name=".activities.HealthTrackerActivity" />
         <activity android:name=".activities.HoneyProductionActivity" />
         <activity android:name=".activities.MapActivity" />
-        <activity android:name=".activities.TipsActivity" />
+        <activity android:name=".activities.AddHiveActivity" />
         <activity android:name=".activities.NotificationHistoryActivity" />
+        <activity android:name=".activities.TipsActivity" />
         <activity android:name=".activities.ProfileActivity" />
 
         <service
