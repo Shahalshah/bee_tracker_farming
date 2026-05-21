@@ -2,16 +2,17 @@ package com.example.ben.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.ben.databinding.ActivityLoginBinding
-import com.example.ben.utils.FirebaseUtils
 import com.example.ben.viewmodels.AuthViewModel
 
 class LoginActivity : AppCompatActivity() {
 
+    private val TAG = "LoginActivityDebug"
     private lateinit var binding: ActivityLoginBinding
     private val viewModel: AuthViewModel by viewModels()
 
@@ -25,32 +26,30 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupObservers() {
-        viewModel.authState.observe(this) { authResult ->
-            if (authResult != null) {
-                // Fetch role before redirecting
-                val uid = authResult.user?.uid ?: return@observe
-                FirebaseUtils.usersRef().child(uid).child("role").get().addOnSuccessListener {
-                    val role = it.value as? String
-                    if (role == "Farmer") {
-                        startActivity(Intent(this, FarmerDashboardActivity::class.java))
-                    } else if (role == "Beekeeper") {
-                        startActivity(Intent(this, BeekeeperDashboardActivity::class.java))
-                    } else {
-                        Toast.makeText(this, "User role not found", Toast.LENGTH_SHORT).show()
-                    }
-                    finish()
+        // Observe user data for role-based navigation
+        viewModel.userData.observe(this) { user ->
+            if (user != null) {
+                Log.d(TAG, "userData observer: Redirecting user with role ${user.role}")
+                val intent = if (user.role == "Farmer") {
+                    Intent(this, FarmerDashboardActivity::class.java)
+                } else {
+                    Intent(this, BeekeeperDashboardActivity::class.java)
                 }
+                startActivity(intent)
+                finish()
             }
         }
 
         viewModel.error.observe(this) { error ->
             error?.let {
+                Log.e(TAG, "error observer: $it")
                 Toast.makeText(this, it, Toast.LENGTH_LONG).show()
                 viewModel.clearError()
             }
         }
 
         viewModel.loading.observe(this) { isLoading ->
+            Log.d(TAG, "loading observer: $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnLogin.isEnabled = !isLoading
         }
@@ -65,6 +64,7 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter all details", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            Log.d(TAG, "Login button clicked for $email")
             viewModel.login(email, pass)
         }
 

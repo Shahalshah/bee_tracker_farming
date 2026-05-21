@@ -1,13 +1,21 @@
 package com.example.ben.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.ben.models.User
 import com.example.ben.repositories.AuthRepository
 import com.google.firebase.auth.AuthResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 class AuthViewModel : ViewModel() {
+    private val TAG = "AuthViewModelDebug"
     private val repository = AuthRepository()
 
     private val _authState = MutableLiveData<AuthResult?>()
@@ -23,51 +31,88 @@ class AuthViewModel : ViewModel() {
     val loading: LiveData<Boolean> = _loading
 
     fun login(email: String, pass: String) {
-        _loading.value = true
-        repository.login(email, pass).addOnCompleteListener { task ->
-            _loading.value = false
-            if (task.isSuccessful) {
-                _authState.value = task.result
-                fetchUserData(task.result?.user?.uid ?: "")
-            } else {
-                _error.value = task.exception?.message ?: "Login failed"
+        Log.d(TAG, "login: Started for $email")
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                // 5-second timeout for authentication
+                val result = withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.login(email, pass).await()
+                    }
+                }
+                Log.d(TAG, "login: Auth success, fetching user data...")
+                _authState.value = result
+                fetchUserData(result.user?.uid ?: "")
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.e(TAG, "login: Timeout")
+                _error.value = "Login timed out. Please check your internet."
+                _loading.value = false
+            } catch (e: Exception) {
+                Log.e(TAG, "login: Failed - ${e.message}")
+                _error.value = e.message ?: "Login failed"
+                _loading.value = false
             }
         }
     }
 
     fun signup(user: User, pass: String) {
-        _loading.value = true
-        repository.signup(user.email, pass).addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val newUser = user.copy(uid = task.result?.user?.uid ?: "")
+        Log.d(TAG, "signup: Started for ${user.email}")
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val result = withTimeout(7000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.signup(user.email, pass).await()
+                    }
+                }
+                val newUser = user.copy(uid = result.user?.uid ?: "")
                 saveUser(newUser)
-            } else {
+            } catch (e: Exception) {
+                Log.e(TAG, "signup: Failed - ${e.message}")
+                _error.value = e.message ?: "Signup failed"
                 _loading.value = false
-                _error.value = task.exception?.message ?: "Signup failed"
             }
         }
     }
 
     private fun saveUser(user: User) {
-        repository.saveUser(user).addOnCompleteListener { task ->
-            _loading.value = false
-            if (task.isSuccessful) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.saveUser(user).await()
+                }
+                Log.d(TAG, "saveUser: Success")
                 _userData.value = user
-            } else {
-                _error.value = task.exception?.message ?: "Failed to save user data"
+            } catch (e: Exception) {
+                Log.e(TAG, "saveUser: Failed - ${e.message}")
+                _error.value = "Failed to save user data"
+            } finally {
+                _loading.value = false
             }
         }
     }
 
     fun fetchUserData(uid: String) {
-        _loading.value = true
-        repository.getUserData(uid).addOnSuccessListener { snapshot ->
-            _loading.value = false
-            val user = snapshot.getValue(User::class.java)
-            _userData.value = user
-        }.addOnFailureListener {
-            _loading.value = false
-            _error.value = it.message ?: "Failed to fetch user data"
+        if (uid.isEmpty()) return
+        Log.d(TAG, "fetchUserData: Started for $uid")
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val snapshot = withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.getUserData(uid).await()
+                    }
+                }
+                val user = snapshot.getValue(User::class.java)
+                Log.d(TAG, "fetchUserData: Success, role: ${user?.role}")
+                _userData.value = user
+            } catch (e: Exception) {
+                Log.e(TAG, "fetchUserData: Failed - ${e.message}")
+                _error.value = "Failed to fetch user role"
+            } finally {
+                _loading.value = false
+            }
         }
     }
 
@@ -78,20 +123,21 @@ class AuthViewModel : ViewModel() {
     }
 
     fun forgotPassword(email: String) {
-        _loading.value = true
-        repository.forgotPassword(email).addOnCompleteListener { task ->
-            _loading.value = false
-            if (task.isSuccessful) {
+        Log.d(TAG, "forgotPassword: Started for $email")
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.forgotPassword(email).await()
+                }
                 _error.value = "Reset email sent successfully!"
-            } else {
-                _error.value = task.exception?.message ?: "Failed to send reset email"
+            } catch (e: Exception) {
+                Log.e(TAG, "forgotPassword: Failed - ${e.message}")
+                _error.value = e.message ?: "Failed to send reset email"
+            } finally {
+                _loading.value = false
             }
         }
-    }
-
-    fun updateFcmToken(token: String) {
-        val uid = _userData.value?.uid ?: return
-        repository.updateFcmToken(uid, token)
     }
 
     fun clearError() {
