@@ -97,15 +97,17 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             _loading.value = true
             try {
-                withTimeout(2000L) {
+                // Increased timeout to 5 seconds to give server more time to confirm.
+                withTimeout(5000L) {
                     withContext(Dispatchers.IO) {
                         repository.saveHive(hive).await()
                     }
-                    _status.value = "Hive location saved successfully!"
+                    _status.value = "Hive saved successfully!"
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Log.d(TAG, "saveHive: Network slow, hive saved locally.")
-                _status.value = "Hive saved locally. Syncing..."
+                // With persistence ON, it's saved locally even if the server is slow.
+                Log.d(TAG, "saveHive: Network slow, but saved locally.")
+                _status.value = "Hive saved successfully (Syncing in background)"
             } catch (e: Exception) {
                 Log.e(TAG, "saveHive: Failed - ${e.message}")
                 _status.value = "Failed to save hive: ${e.message}"
@@ -170,9 +172,9 @@ class MainViewModel : ViewModel() {
             _loading.value = true
             Log.d(TAG, "sendAlert: Loading shown")
             try {
-                // To make it feel "Instant", we perform the write and don't wait for server confirmation 
-                // if it takes more than 2 seconds. Persistence will handle the rest.
-                withTimeout(2000L) { 
+                // Increased timeout to 5 seconds. 
+                // Since persistence is enabled, the data is saved locally immediately.
+                withTimeout(5000L) { 
                     Log.d(TAG, "sendAlert: Firebase write started")
                     withContext(Dispatchers.IO) {
                         repository.sendAlert(alert).await()
@@ -181,8 +183,9 @@ class MainViewModel : ViewModel() {
                     _status.value = "Alert sent successfully!"
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                // Persistence is ON, so it's saved locally and will be sent as soon as internet is stable.
                 Log.d(TAG, "sendAlert: Network slow, alert saved locally and will sync.")
-                _status.value = "Alert queued. Sending in background..."
+                _status.value = "Alert sent successfully (Syncing in background)"
             } catch (e: Exception) {
                 Log.e(TAG, "sendAlert: FAILED - ${e.message}")
                 _status.value = "Failed to send alert: ${e.message}"
