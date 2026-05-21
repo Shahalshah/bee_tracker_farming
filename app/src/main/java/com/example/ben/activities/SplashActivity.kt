@@ -31,11 +31,26 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun checkAuth() {
-        if (FirebaseUtils.currentUserUid != null) {
-            startActivity(Intent(this, DashboardActivity::class.java))
+        val uid = FirebaseUtils.currentUserUid
+        if (uid != null) {
+            FirebaseUtils.usersRef().child(uid).child("role").get().addOnSuccessListener {
+                val role = it.value as? String
+                if (role == "Farmer") {
+                    startActivity(Intent(this, FarmerDashboardActivity::class.java))
+                } else if (role == "Beekeeper") {
+                    startActivity(Intent(this, BeekeeperDashboardActivity::class.java))
+                } else {
+                    // Fallback or error
+                    startActivity(Intent(this, LoginActivity::class.java))
+                }
+                finish()
+            }.addOnFailureListener {
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
         } else {
             startActivity(Intent(this, LoginActivity::class.java))
+            finish()
         }
-        finish()
     }
 }

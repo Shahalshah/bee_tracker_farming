@@ -43,6 +43,13 @@ class MainViewModel : ViewModel() {
     private val _activeAlertsCount = MutableLiveData<Int>()
     val activeAlertsCount: LiveData<Int> = _activeAlertsCount
 
+    // Farmer Statistics
+    private val _alertsSentCount = MutableLiveData<Int>()
+    val alertsSentCount: LiveData<Int> = _alertsSentCount
+
+    private val _nearbyHivesCount = MutableLiveData<Int>()
+    val nearbyHivesCount: LiveData<Int> = _nearbyHivesCount
+
     private val _status = MutableLiveData<String?>()
     val status: LiveData<String?> = _status
 
@@ -62,10 +69,14 @@ class MainViewModel : ViewModel() {
                 }
                 _hives.value = list
                 
-                // Calculate beekeeper specific hive count
+                // Beekeeper: My hives
                 val beekeeperHives = list.filter { it.beekeeperId == uid }
                 _hiveCount.value = beekeeperHives.size
-                Log.d(TAG, "fetchAllHives: Updated hiveCount to ${_hiveCount.value}")
+                
+                // Farmer: Nearby hives (For now, all hives visible to farmers as "nearby")
+                _nearbyHivesCount.value = list.size
+                
+                Log.d(TAG, "fetchAllHives: Updated hiveCount to ${_hiveCount.value}, nearby to ${_nearbyHivesCount.value}")
             }
             override fun onCancelled(error: DatabaseError) {
                 _status.value = "Map Error: ${error.message}"
@@ -140,12 +151,14 @@ class MainViewModel : ViewModel() {
 
     // Alerts
     fun fetchAlerts() {
+        val uid = FirebaseUtils.currentUserUid ?: return
         repository.getAlerts().addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Alert>()
                 val now = System.currentTimeMillis()
                 val oneDayMillis = 24 * 60 * 60 * 1000
                 var activeCount = 0
+                var sentByMe = 0
                 
                 for (shot in snapshot.children) {
                     shot.getValue(Alert::class.java)?.let { 
@@ -153,10 +166,14 @@ class MainViewModel : ViewModel() {
                         if (now - it.timestamp < oneDayMillis) {
                             activeCount++
                         }
+                        if (it.farmerId == uid) {
+                            sentByMe++
+                        }
                     }
                 }
                 _alerts.value = list
                 _activeAlertsCount.value = activeCount
+                _alertsSentCount.value = sentByMe
             }
             override fun onCancelled(error: DatabaseError) {
                 _status.value = "Alerts Error: ${error.message}"

@@ -41,23 +41,42 @@ class HomeFragment : Fragment() {
                 userRole = user.role
                 updateUI(user.name)
                 
-                // Show stats for beekeeper
-                binding.layoutStats.visibility = if (userRole == "Beekeeper") View.VISIBLE else View.GONE
+                // Show stats for everyone
+                binding.layoutStats.visibility = View.VISIBLE
+                updateLabels()
             }
         }
 
         mainViewModel.hiveCount.observe(viewLifecycleOwner) { count ->
-            binding.tvStatHiveCount.text = count.toString()
+            if (userRole == "Beekeeper") {
+                binding.tvStat1Value.text = count.toString()
+            }
+        }
+        
+        mainViewModel.nearbyHivesCount.observe(viewLifecycleOwner) { count ->
+            if (userRole == "Farmer") {
+                binding.tvStat1Value.text = count.toString()
+            }
         }
 
         mainViewModel.totalHoney.observe(viewLifecycleOwner) { total ->
-            binding.tvStatHoneyTotal.text = java.util.Locale.getDefault().let { locale ->
-                String.format(locale, "%.1f", total)
+            if (userRole == "Beekeeper") {
+                binding.tvStat3Value.text = java.util.Locale.getDefault().let { locale ->
+                    String.format(locale, "%.1f", total)
+                }
             }
         }
 
         mainViewModel.activeAlertsCount.observe(viewLifecycleOwner) { count ->
-            binding.tvStatAlertCount.text = count.toString()
+            if (userRole == "Beekeeper") {
+                binding.tvStat2Value.text = count.toString()
+            }
+        }
+        
+        mainViewModel.alertsSentCount.observe(viewLifecycleOwner) { count ->
+            if (userRole == "Farmer") {
+                binding.tvStat2Value.text = count.toString()
+            }
         }
 
         mainViewModel.status.observe(viewLifecycleOwner) { status ->
@@ -65,6 +84,19 @@ class HomeFragment : Fragment() {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
                 mainViewModel.clearStatus()
             }
+        }
+    }
+
+    private fun updateLabels() {
+        if (userRole == "Beekeeper") {
+            binding.tvStat1Label.text = "Total Hives"
+            binding.tvStat2Label.text = "Active Alerts"
+            binding.tvStat3Label.text = "Honey (kg)"
+        } else {
+            binding.tvStat1Label.text = "Nearby Hives"
+            binding.tvStat2Label.text = "Alerts Sent"
+            binding.tvStat3Label.text = "Tips"
+            binding.tvStat3Value.text = "12" // Placeholder for Tips count
         }
     }
 
@@ -81,25 +113,21 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupBeekeeperDashboard() {
-        // Card 1: Hive Management (Add Hive Location)
         binding.tvAction1.text = "Manage Hives"
         binding.tvAction1Sub.text = "Add, Edit, or Delete"
         binding.ivAction1.setImageResource(android.R.drawable.ic_menu_add)
         binding.cardAction1.setCardBackgroundColor(requireContext().getColor(R.color.card_action_map))
 
-        // Card 2: Hive Health Tracker
         binding.tvAction2.text = getString(R.string.health_tracker)
         binding.tvAction2Sub.text = "Monitor condition"
         binding.ivAction2.setImageResource(android.R.drawable.ic_menu_edit)
         binding.cardAction2.setCardBackgroundColor(requireContext().getColor(R.color.card_action_tips))
 
-        // Card 3: Honey Production Records
         binding.tvAction3.text = getString(R.string.honey_production)
         binding.tvAction3Sub.text = "Track production"
         binding.ivAction3.setImageResource(android.R.drawable.ic_menu_save)
         binding.cardAction3.setCardBackgroundColor(requireContext().getColor(R.color.card_action_honey))
 
-        // Card 4: Notification History (Spray Alerts)
         binding.tvAction4.text = "Notification History"
         binding.tvAction4Sub.text = "View alerts"
         binding.ivAction4.setImageResource(android.R.drawable.ic_popup_reminder)
@@ -107,25 +135,21 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupFarmerDashboard() {
-        // Card 1: Spray Alert
         binding.tvAction1.text = getString(R.string.spray_alert)
         binding.tvAction1Sub.text = getString(R.string.spraying_today_sub)
         binding.ivAction1.setImageResource(android.R.drawable.ic_dialog_alert)
         binding.cardAction1.setCardBackgroundColor(requireContext().getColor(R.color.card_action_alert))
 
-        // Card 2: View Hive Map (Nearby Hive Detection)
         binding.tvAction2.text = getString(R.string.view_hive_map)
         binding.tvAction2Sub.text = getString(R.string.nearby_hives_sub)
         binding.ivAction2.setImageResource(android.R.drawable.ic_dialog_map)
         binding.cardAction2.setCardBackgroundColor(requireContext().getColor(R.color.card_action_map))
 
-        // Card 3: Safety Tips (Bee-Friendly pesticide suggestions)
         binding.tvAction3.text = getString(R.string.bee_tips)
         binding.tvAction3Sub.text = "Bee-friendly tips"
         binding.ivAction3.setImageResource(android.R.drawable.ic_menu_info_details)
         binding.cardAction3.setCardBackgroundColor(requireContext().getColor(R.color.card_action_tips))
 
-        // Card 4: Notification History (Spray History)
         binding.tvAction4.text = "Notification History"
         binding.tvAction4Sub.text = "View alerts"
         binding.ivAction4.setImageResource(android.R.drawable.ic_popup_reminder)
@@ -135,13 +159,11 @@ class HomeFragment : Fragment() {
     private fun setupClickListeners() {
         binding.cardAction1.setOnClickListener {
             if (userRole == "Farmer") startActivity(Intent(requireContext(), AlertActivity::class.java))
-            else {
-                // Beekeeper: Manage Hives
-                startActivity(Intent(requireContext(), ManageHivesActivity::class.java))
-            }
+            else startActivity(Intent(requireContext(), ManageHivesActivity::class.java))
         }
         binding.cardAction2.setOnClickListener {
-            startActivity(Intent(requireContext(), MapActivity::class.java))
+            if (userRole == "Beekeeper") startActivity(Intent(requireContext(), HealthTrackerActivity::class.java))
+            else startActivity(Intent(requireContext(), MapActivity::class.java))
         }
         binding.cardAction3.setOnClickListener {
             if (userRole == "Farmer") startActivity(Intent(requireContext(), TipsActivity::class.java))

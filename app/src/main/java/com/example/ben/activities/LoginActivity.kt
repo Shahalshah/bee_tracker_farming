@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.ben.databinding.ActivityLoginBinding
+import com.example.ben.utils.FirebaseUtils
 import com.example.ben.viewmodels.AuthViewModel
 
 class LoginActivity : AppCompatActivity() {
@@ -24,10 +25,21 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupObservers() {
-        viewModel.authState.observe(this) { user ->
-            if (user != null) {
-                startActivity(Intent(this, DashboardActivity::class.java))
-                finish()
+        viewModel.authState.observe(this) { authResult ->
+            if (authResult != null) {
+                // Fetch role before redirecting
+                val uid = authResult.user?.uid ?: return@observe
+                FirebaseUtils.usersRef().child(uid).child("role").get().addOnSuccessListener {
+                    val role = it.value as? String
+                    if (role == "Farmer") {
+                        startActivity(Intent(this, FarmerDashboardActivity::class.java))
+                    } else if (role == "Beekeeper") {
+                        startActivity(Intent(this, BeekeeperDashboardActivity::class.java))
+                    } else {
+                        Toast.makeText(this, "User role not found", Toast.LENGTH_SHORT).show()
+                    }
+                    finish()
+                }
             }
         }
 

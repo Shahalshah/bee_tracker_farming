@@ -34,6 +34,8 @@
         <activity android:name=".activities.LoginActivity" />
         <activity android:name=".activities.SignupActivity" />
         <activity android:name=".activities.ForgotPasswordActivity" />
+        <activity android:name=".activities.FarmerDashboardActivity" />
+        <activity android:name=".activities.BeekeeperDashboardActivity" />
         <activity android:name=".activities.DashboardActivity" />
         <activity android:name=".activities.AlertActivity" />
         <activity android:name=".activities.HealthTrackerActivity" />

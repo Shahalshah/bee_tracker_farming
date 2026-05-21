@@ -30,6 +30,18 @@
         tools:layout="@layout/fragment_tips" />
 
     <fragment
+        android:id="@+id/nav_health"
+        android:name="com.example.ben.fragments.HealthFragment"
+        android:label="Health"
+        tools:layout="@layout/fragment_health" />
+
+    <fragment
+        android:id="@+id/nav_honey"
+        android:name="com.example.ben.fragments.HoneyFragment"
+        android:label="Honey"
+        tools:layout="@layout/fragment_honey" />
+
+    <fragment
         android:id="@+id/nav_profile"
         android:name="com.example.ben.fragments.ProfileFragment"
         android:label="Profile"

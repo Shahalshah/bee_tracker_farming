@@ -39,7 +39,11 @@ class SignupActivity : AppCompatActivity() {
         viewModel.userData.observe(this) { user ->
             if (user != null) {
                 Toast.makeText(this, "Account created successfully", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this, DashboardActivity::class.java))
+                if (user.role == "Farmer") {
+                    startActivity(Intent(this, FarmerDashboardActivity::class.java))
+                } else {
+                    startActivity(Intent(this, BeekeeperDashboardActivity::class.java))
+                }
                 finishAffinity()
             }
         }

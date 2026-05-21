@@ -106,7 +106,7 @@
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Beekeeper Stats Row -->
+            <!-- Stats Row -->
             <LinearLayout
                 android:id="@+id/layoutStats"
                 android:layout_width="match_parent"
@@ -129,7 +129,7 @@
                         android:padding="12dp"
                         android:gravity="center">
                         <TextView
-                            android:id="@+id/tvStatHiveCount"
+                            android:id="@+id/tvStat1Value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
@@ -137,6 +137,7 @@
                             android:textStyle="bold"
                             android:textColor="@color/primary_green"/>
                         <TextView
+                            android:id="@+id/tvStat1Label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Hives"
@@ -159,7 +160,7 @@
                         android:padding="12dp"
                         android:gravity="center">
                         <TextView
-                            android:id="@+id/tvStatAlertCount"
+                            android:id="@+id/tvStat2Value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
@@ -167,6 +168,7 @@
                             android:textStyle="bold"
                             android:textColor="@color/alert_red"/>
                         <TextView
+                            android:id="@+id/tvStat2Label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Active Alerts"
@@ -189,7 +191,7 @@
                         android:padding="12dp"
                         android:gravity="center">
                         <TextView
-                            android:id="@+id/tvStatHoneyTotal"
+                            android:id="@+id/tvStat3Value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0.0"
@@ -197,6 +199,7 @@
                             android:textStyle="bold"
                             android:textColor="@color/honey_orange"/>
                         <TextView
+                            android:id="@+id/tvStat3Label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Honey (kg)"
