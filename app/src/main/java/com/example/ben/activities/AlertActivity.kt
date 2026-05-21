@@ -3,6 +3,7 @@ package com.example.ben.activities
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -16,6 +17,7 @@ import java.util.*
 
 class AlertActivity : AppCompatActivity() {
 
+    private val TAG = "AlertActivityDebug"
     private lateinit var binding: ActivityAlertBinding
     private val mainViewModel: MainViewModel by viewModels()
     private val authViewModel: AuthViewModel by viewModels()
@@ -43,6 +45,7 @@ class AlertActivity : AppCompatActivity() {
 
         mainViewModel.status.observe(this) { status ->
             status?.let {
+                Log.d(TAG, "mainViewModel.status observer: $it")
                 Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
                 if (it.contains("successfully", true)) finish()
                 mainViewModel.clearStatus()
@@ -50,6 +53,7 @@ class AlertActivity : AppCompatActivity() {
         }
 
         mainViewModel.loading.observe(this) { isLoading ->
+            Log.d(TAG, "mainViewModel.loading observer: $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnSendAlert.isEnabled = !isLoading
         }
@@ -84,6 +88,8 @@ class AlertActivity : AppCompatActivity() {
             return
         }
 
+        Log.d(TAG, "validateAndSend: Preparing alert for $pesticide")
+
         val alert = Alert(
             farmerId = FirebaseUtils.currentUserUid ?: "",
             farmerName = if (farmerName.isEmpty()) "A Farmer" else farmerName,
@@ -91,7 +97,7 @@ class AlertActivity : AppCompatActivity() {
             sprayDate = date,
             sprayTime = time,
             notes = notes,
-            latitude = 12.9716, // In production, get current location
+            latitude = 12.9716, // Default; in production, use FusedLocationProvider
             longitude = 77.5946,
             message = "Spray alert: $pesticide spraying scheduled on $date at $time"
         )

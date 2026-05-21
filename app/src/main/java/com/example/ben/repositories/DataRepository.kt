@@ -41,7 +41,12 @@ class DataRepository {
     fun sendAlert(alert: Alert): Task<Void> {
         val ref = FirebaseUtils.alertsRef()
         val id = ref.push().key ?: ""
-        return ref.child(id).setValue(alert.copy(id = id, timestamp = System.currentTimeMillis()))
+        if (id.isEmpty()) throw IllegalStateException("Failed to generate Alert ID.")
+        
+        val finalAlert = alert.copy(id = id, timestamp = System.currentTimeMillis())
+        Log.d(TAG, "sendAlert: Saving to alerts/$id")
+        
+        return ref.child(id).setValue(finalAlert)
     }
 
     fun getAlerts(): Query {
@@ -52,7 +57,10 @@ class DataRepository {
     fun saveHealthReport(report: HealthReport): Task<Void> {
         val ref = FirebaseUtils.healthReportsRef().child(report.beekeeperId)
         val id = if (report.id.isEmpty()) ref.push().key ?: "" else report.id
-        return ref.child(id).setValue(report.copy(id = id, timestamp = System.currentTimeMillis()))
+        if (id.isEmpty()) throw IllegalStateException("Failed to generate Report ID.")
+        
+        val finalReport = report.copy(id = id, timestamp = System.currentTimeMillis())
+        return ref.child(id).setValue(finalReport)
     }
 
     fun deleteHealthReport(beekeeperId: String, reportId: String): Task<Void> {
@@ -67,7 +75,10 @@ class DataRepository {
     fun saveHoneyRecord(record: HoneyRecord): Task<Void> {
         val ref = FirebaseUtils.honeyProductionRef().child(record.beekeeperId)
         val id = if (record.id.isEmpty()) ref.push().key ?: "" else record.id
-        return ref.child(id).setValue(record.copy(id = id, timestamp = System.currentTimeMillis()))
+        if (id.isEmpty()) throw IllegalStateException("Failed to generate Record ID.")
+        
+        val finalRecord = record.copy(id = id, timestamp = System.currentTimeMillis())
+        return ref.child(id).setValue(finalRecord)
     }
 
     fun deleteHoneyRecord(beekeeperId: String, recordId: String): Task<Void> {

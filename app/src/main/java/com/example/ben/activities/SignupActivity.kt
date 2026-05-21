@@ -2,18 +2,19 @@ package com.example.ben.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.ben.R
 import com.example.ben.databinding.ActivitySignupBinding
 import com.example.ben.models.User
 import com.example.ben.viewmodels.AuthViewModel
 
 class SignupActivity : AppCompatActivity() {
 
+    private val TAG = "SignupActivityDebug"
     private lateinit var binding: ActivitySignupBinding
     private val viewModel: AuthViewModel by viewModels()
 
@@ -38,24 +39,29 @@ class SignupActivity : AppCompatActivity() {
     private fun setupObservers() {
         viewModel.userData.observe(this) { user ->
             if (user != null) {
+                Log.d(TAG, "userData observer: Signup successful for role ${user.role}")
                 Toast.makeText(this, "Account created successfully", Toast.LENGTH_SHORT).show()
-                if (user.role == "Farmer") {
-                    startActivity(Intent(this, FarmerDashboardActivity::class.java))
+                val intent = if (user.role == "Farmer") {
+                    Intent(this, FarmerDashboardActivity::class.java)
                 } else {
-                    startActivity(Intent(this, BeekeeperDashboardActivity::class.java))
+                    Intent(this, BeekeeperDashboardActivity::class.java)
                 }
-                finishAffinity()
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
             }
         }
 
         viewModel.error.observe(this) { error ->
             error?.let {
+                Log.e(TAG, "error observer: $it")
                 Toast.makeText(this, it, Toast.LENGTH_LONG).show()
                 viewModel.clearError()
             }
         }
 
         viewModel.loading.observe(this) { isLoading ->
+            Log.d(TAG, "loading observer: $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnSignup.isEnabled = !isLoading
         }
@@ -79,6 +85,7 @@ class SignupActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            Log.d(TAG, "setupClickListeners: Attempting signup for $email as $role")
             val user = User(name = name, email = email, phone = phone, role = role)
             viewModel.signup(user, pass)
         }

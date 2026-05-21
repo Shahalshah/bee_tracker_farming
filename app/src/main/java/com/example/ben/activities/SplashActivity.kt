@@ -34,7 +34,7 @@ class SplashActivity : AppCompatActivity() {
         // Startup sequence
         lifecycleScope.launch {
             Log.d(TAG, "onCreate: Startup delay started")
-            delay(2500)
+            delay(2000)
             checkAuthAndNavigate()
         }
     }
@@ -74,7 +74,7 @@ class SplashActivity : AppCompatActivity() {
                 "Farmer" -> navigateTo(FarmerDashboardActivity::class.java)
                 "Beekeeper" -> navigateTo(BeekeeperDashboardActivity::class.java)
                 else -> {
-                    Log.e(TAG, "checkAuthAndNavigate: Unknown or missing role. Sign out.")
+                    Log.e(TAG, "checkAuthAndNavigate: Unknown or missing role: $role. Signing out.")
                     FirebaseUtils.auth.signOut()
                     navigateTo(LoginActivity::class.java)
                 }
@@ -88,10 +88,10 @@ class SplashActivity : AppCompatActivity() {
     private fun navigateTo(destination: Class<*>) {
         Log.d(TAG, "navigateTo: Intent to ${destination.simpleName}")
         val intent = Intent(this, destination)
-        // Clear stack to prevent splash back-navigation or loops
+        // Clear stack to prevent back-navigation to splash
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
-        Log.d(TAG, "navigateTo: Splash screen FINISHED and activity destroyed")
+        Log.d(TAG, "navigateTo: Splash screen FINISHED and destroyed")
     }
 }

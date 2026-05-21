@@ -33,7 +33,7 @@ class MainViewModel : ViewModel() {
     private val _honeyRecords = MutableLiveData<List<HoneyRecord>>()
     val honeyRecords: LiveData<List<HoneyRecord>> = _honeyRecords
 
-    // Beekeeper Statistics
+    // Statistics
     private val _hiveCount = MutableLiveData<Int>()
     val hiveCount: LiveData<Int> = _hiveCount
 
@@ -43,7 +43,6 @@ class MainViewModel : ViewModel() {
     private val _activeAlertsCount = MutableLiveData<Int>()
     val activeAlertsCount: LiveData<Int> = _activeAlertsCount
 
-    // Farmer Statistics
     private val _alertsSentCount = MutableLiveData<Int>()
     val alertsSentCount: LiveData<Int> = _alertsSentCount
 
@@ -56,140 +55,114 @@ class MainViewModel : ViewModel() {
     private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> = _loading
 
-    // Hives - Realtime Listener (Efficient)
+    // Hives - Optimized with Timeout and Single Fetch
     fun fetchAllHives() {
         val uid = FirebaseUtils.currentUserUid ?: return
-        Log.d(TAG, "fetchAllHives: Started for user: $uid")
-        
-        repository.getAllHives().addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
+        Log.d(TAG, "fetchAllHives: Started")
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val snapshot = withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.getAllHives().get().await()
+                    }
+                }
                 val list = mutableListOf<Hive>()
                 for (shot in snapshot.children) {
                     shot.getValue(Hive::class.java)?.let { list.add(it) }
                 }
                 _hives.value = list
                 
-                // Beekeeper: My hives
-                val beekeeperHives = list.filter { it.beekeeperId == uid }
-                _hiveCount.value = beekeeperHives.size
-                
-                // Farmer: Nearby hives (For now, all hives visible to farmers as "nearby")
+                // Stats
+                _hiveCount.value = list.count { it.beekeeperId == uid }
                 _nearbyHivesCount.value = list.size
-                
-                Log.d(TAG, "fetchAllHives: Updated hiveCount to ${_hiveCount.value}, nearby to ${_nearbyHivesCount.value}")
+                Log.d(TAG, "fetchAllHives: Success, total: ${list.size}")
+            } catch (e: Exception) {
+                Log.e(TAG, "fetchAllHives: Failed - ${e.message}")
+                _status.value = "Failed to load map data"
+            } finally {
+                _loading.value = false
             }
-            override fun onCancelled(error: DatabaseError) {
-                _status.value = "Map Error: ${error.message}"
-            }
-        })
+        }
     }
 
-    // Optimized Save using Coroutines with Timeout and Detailed Logging
     fun saveHive(hive: Hive) {
         val uid = FirebaseUtils.currentUserUid
-        Log.d(TAG, "saveHive: Started for user: $uid hiveName: ${hive.name} lat: ${hive.latitude} lng: ${hive.longitude}")
-
         if (uid == null) {
-            _status.value = "User not logged in. Please log in to save location."
-            return
-        }
-
-        if (hive.name.isEmpty()) {
-            _status.value = "Hive name cannot be empty"
-            return
-        }
-
-        if (hive.latitude == 0.0 || hive.longitude == 0.0) {
-            _status.value = "Invalid coordinates. Please select a location on the map."
+            _status.value = "Session expired"
             return
         }
 
         viewModelScope.launch {
             _loading.value = true
-            Log.d(TAG, "saveHive: Loading shown. Attempting Firebase write...")
             try {
-                withTimeout(7000L) { // Increased to 7 seconds for slower networks
+                withTimeout(5000L) {
                     withContext(Dispatchers.IO) {
                         repository.saveHive(hive).await()
                     }
-                    Log.d(TAG, "saveHive: Firebase write SUCCESS")
                 }
                 _status.value = "Hive location saved successfully!"
-            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Log.e(TAG, "saveHive: FAILED due to Timeout (7s)")
-                _status.value = "Network timeout. Check your internet connection."
+                fetchAllHives() // Refresh local state
             } catch (e: Exception) {
-                val errorMsg = e.message ?: "Unknown error"
-                Log.e(TAG, "saveHive: FAILED with exception: $errorMsg", e)
-                if (errorMsg.contains("permission", true) || errorMsg.contains("denied", true)) {
-                    _status.value = "Permission Denied! Ensure database rules allow authenticated writes."
-                } else {
-                    _status.value = "Failed to save hive: $errorMsg"
-                }
+                Log.e(TAG, "saveHive: Failed - ${e.message}")
+                _status.value = "Failed to save hive: ${e.message}"
             } finally {
                 _loading.value = false
-                Log.d(TAG, "saveHive: Loading hidden")
             }
         }
     }
 
-    fun deleteHive(hiveId: String) {
+    // Alerts - Optimized with Timeout
+    fun fetchAlerts() {
+        val uid = FirebaseUtils.currentUserUid ?: return
+        Log.d(TAG, "fetchAlerts: Started")
         viewModelScope.launch {
             _loading.value = true
             try {
-                withContext(Dispatchers.IO) {
-                    repository.deleteHive(hiveId).await()
+                val snapshot = withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.getAlerts().get().await()
+                    }
                 }
-                _status.value = "Hive deleted"
-            } catch (e: Exception) {
-                _status.value = "Delete Failed: ${e.message}"
-            } finally {
-                _loading.value = false
-            }
-        }
-    }
-
-    // Alerts
-    fun fetchAlerts() {
-        val uid = FirebaseUtils.currentUserUid ?: return
-        repository.getAlerts().addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Alert>()
                 val now = System.currentTimeMillis()
                 val oneDayMillis = 24 * 60 * 60 * 1000
                 var activeCount = 0
                 var sentByMe = 0
-                
+
                 for (shot in snapshot.children) {
                     shot.getValue(Alert::class.java)?.let { 
                         list.add(0, it)
-                        if (now - it.timestamp < oneDayMillis) {
-                            activeCount++
-                        }
-                        if (it.farmerId == uid) {
-                            sentByMe++
-                        }
+                        if (now - it.timestamp < oneDayMillis) activeCount++
+                        if (it.farmerId == uid) sentByMe++
                     }
                 }
                 _alerts.value = list
                 _activeAlertsCount.value = activeCount
                 _alertsSentCount.value = sentByMe
+                Log.d(TAG, "fetchAlerts: Success, total: ${list.size}")
+            } catch (e: Exception) {
+                Log.e(TAG, "fetchAlerts: Failed - ${e.message}")
+                _status.value = "Failed to load alerts"
+            } finally {
+                _loading.value = false
             }
-            override fun onCancelled(error: DatabaseError) {
-                _status.value = "Alerts Error: ${error.message}"
-            }
-        })
+        }
     }
 
     fun sendAlert(alert: Alert) {
         viewModelScope.launch {
             _loading.value = true
             try {
-                withContext(Dispatchers.IO) {
-                    repository.sendAlert(alert).await()
+                withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.sendAlert(alert).await()
+                    }
                 }
                 _status.value = "Alert sent successfully"
+                fetchAlerts() // Refresh list
             } catch (e: Exception) {
+                Log.e(TAG, "sendAlert: Failed - ${e.message}")
                 _status.value = "Failed to send alert"
             } finally {
                 _loading.value = false
@@ -197,31 +170,41 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // Health
+    // Health - Optimized
     fun fetchHealthReports() {
         val uid = FirebaseUtils.currentUserUid ?: return
-        repository.getHealthReports(uid).addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val snapshot = withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.getHealthReports(uid).get().await()
+                    }
+                }
                 val list = mutableListOf<HealthReport>()
                 for (shot in snapshot.children) {
                     shot.getValue(HealthReport::class.java)?.let { list.add(0, it) }
                 }
                 _healthReports.value = list
+            } catch (e: Exception) {
+                _status.value = "Failed to load health reports"
+            } finally {
+                _loading.value = false
             }
-            override fun onCancelled(error: DatabaseError) {
-                _status.value = error.message
-            }
-        })
+        }
     }
 
     fun saveHealthReport(report: HealthReport) {
         viewModelScope.launch {
             _loading.value = true
             try {
-                withContext(Dispatchers.IO) {
-                    repository.saveHealthReport(report).await()
+                withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.saveHealthReport(report).await()
+                    }
                 }
                 _status.value = "Health report saved"
+                fetchHealthReports()
             } catch (e: Exception) {
                 _status.value = "Failed to save report"
             } finally {
@@ -230,11 +213,17 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // Honey
+    // Honey - Optimized
     fun fetchHoneyRecords() {
         val uid = FirebaseUtils.currentUserUid ?: return
-        repository.getHoneyRecords(uid).addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val snapshot = withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.getHoneyRecords(uid).get().await()
+                    }
+                }
                 val list = mutableListOf<HoneyRecord>()
                 var total = 0.0
                 for (shot in snapshot.children) {
@@ -245,23 +234,46 @@ class MainViewModel : ViewModel() {
                 }
                 _honeyRecords.value = list
                 _totalHoney.value = total
+            } catch (e: Exception) {
+                _status.value = "Failed to load honey records"
+            } finally {
+                _loading.value = false
             }
-            override fun onCancelled(error: DatabaseError) {
-                _status.value = error.message
-            }
-        })
+        }
     }
 
     fun saveHoneyRecord(record: HoneyRecord) {
         viewModelScope.launch {
             _loading.value = true
             try {
-                withContext(Dispatchers.IO) {
-                    repository.saveHoneyRecord(record).await()
+                withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.saveHoneyRecord(record).await()
+                    }
                 }
                 _status.value = "Honey record saved"
+                fetchHoneyRecords()
             } catch (e: Exception) {
                 _status.value = "Failed to save record"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    fun deleteHive(hiveId: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                withTimeout(5000L) {
+                    withContext(Dispatchers.IO) {
+                        repository.deleteHive(hiveId).await()
+                    }
+                }
+                _status.value = "Hive deleted"
+                fetchAllHives()
+            } catch (e: Exception) {
+                _status.value = "Failed to delete hive"
             } finally {
                 _loading.value = false
             }

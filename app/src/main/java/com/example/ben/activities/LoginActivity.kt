@@ -32,21 +32,21 @@ class LoginActivity : AppCompatActivity() {
         viewModel.userData.observe(this) { user ->
             if (user != null) {
                 Log.d(TAG, "userData observer: User found, role: ${user.role}. Navigating...")
-                val intent = if (user.role == "Farmer") {
-                    Intent(this, FarmerDashboardActivity::class.java)
-                } else if (user.role == "Beekeeper") {
-                    Intent(this, BeekeeperDashboardActivity::class.java)
-                } else {
-                    null
+                val intent = when (user.role) {
+                    "Farmer" -> Intent(this, FarmerDashboardActivity::class.java)
+                    "Beekeeper" -> Intent(this, BeekeeperDashboardActivity::class.java)
+                    else -> null
                 }
 
                 if (intent != null) {
                     Log.d(TAG, "userData observer: Starting Dashboard")
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     finish()
                 } else {
-                    Log.e(TAG, "userData observer: Role is invalid or missing")
+                    Log.e(TAG, "userData observer: Role is invalid or missing: ${user.role}")
                     Toast.makeText(this, "Error: User role invalid.", Toast.LENGTH_LONG).show()
+                    viewModel.logout() // Clear local state if role is broken
                 }
             }
         }
@@ -63,6 +63,9 @@ class LoginActivity : AppCompatActivity() {
             Log.d(TAG, "loading observer: Status - $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnLogin.isEnabled = !isLoading
+            
+            // Safety: If somehow it stays visible, let's ensure buttons aren't permanently disabled
+            // But with our finally blocks in ViewModel, this shouldn't be needed.
         }
     }
 
