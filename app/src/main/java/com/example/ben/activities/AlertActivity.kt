@@ -4,7 +4,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -89,7 +92,10 @@ class AlertActivity : AppCompatActivity() {
             status?.let {
                 Log.d(TAG, "mainViewModel.status observer: $it")
                 Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
-                if (it.contains("successfully", true)) finish()
+                if (it.contains("successfully", true) || it.contains("queued", true)) {
+                    // Success or Queued (persistence) allows finishing
+                    binding.root.postDelayed({ finish() }, 1000)
+                }
                 mainViewModel.clearStatus()
             }
         }
@@ -104,7 +110,25 @@ class AlertActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         binding.etSprayDate.setOnClickListener { showDatePicker() }
         binding.etSprayTime.setOnClickListener { showTimePicker() }
-        binding.btnSendAlert.setOnClickListener { validateAndSend() }
+        binding.btnSendAlert.setOnClickListener { 
+            if (isNetworkAvailable()) {
+                validateAndSend()
+            } else {
+                Toast.makeText(this, "No Internet Connection. Please check and try again.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return when {
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
+        }
     }
 
     private fun showDatePicker() {

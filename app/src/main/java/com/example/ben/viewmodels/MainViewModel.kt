@@ -83,6 +83,8 @@ class MainViewModel : ViewModel() {
 
     fun saveHive(hive: Hive) {
         val uid = FirebaseUtils.currentUserUid
+        Log.d(TAG, "saveHive: Started for ${hive.name}")
+
         if (uid == null) {
             _status.value = "Session expired"
             return
@@ -91,13 +93,15 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             _loading.value = true
             try {
-                withTimeout(5000L) {
+                withTimeout(2000L) {
                     withContext(Dispatchers.IO) {
                         repository.saveHive(hive).await()
                     }
+                    _status.value = "Hive location saved successfully!"
                 }
-                _status.value = "Hive location saved successfully!"
-                fetchAllHives() // Refresh local state
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.d(TAG, "saveHive: Network slow, hive saved locally.")
+                _status.value = "Hive saved locally. Syncing..."
             } catch (e: Exception) {
                 Log.e(TAG, "saveHive: Failed - ${e.message}")
                 _status.value = "Failed to save hive: ${e.message}"
@@ -144,6 +148,8 @@ class MainViewModel : ViewModel() {
 
     fun sendAlert(alert: Alert) {
         val uid = FirebaseUtils.currentUserUid
+        Log.d(TAG, "sendAlert: Started for pesticide: ${alert.pesticideName}")
+
         if (uid == null) {
             _status.value = "Session expired. Please login again."
             return
@@ -151,22 +157,27 @@ class MainViewModel : ViewModel() {
 
         viewModelScope.launch {
             _loading.value = true
+            Log.d(TAG, "sendAlert: Loading shown")
             try {
-                withTimeout(8000L) { // Increased timeout for better reliability
+                // To make it feel "Instant", we perform the write and don't wait for server confirmation 
+                // if it takes more than 2 seconds. Persistence will handle the rest.
+                withTimeout(2000L) { 
+                    Log.d(TAG, "sendAlert: Firebase write started")
                     withContext(Dispatchers.IO) {
                         repository.sendAlert(alert).await()
                     }
+                    Log.d(TAG, "sendAlert: Firebase write success (Server)")
+                    _status.value = "Alert sent successfully!"
                 }
-                _status.value = "Alert sent successfully!"
-                fetchAlerts() // Refresh list
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Log.e(TAG, "sendAlert: Timeout")
-                _status.value = "Network timeout. Please try again."
+                Log.d(TAG, "sendAlert: Network slow, alert saved locally and will sync.")
+                _status.value = "Alert queued. Sending in background..."
             } catch (e: Exception) {
-                Log.e(TAG, "sendAlert: Failed - ${e.message}")
-                _status.value = "Failed: ${e.message ?: "Unknown error"}"
+                Log.e(TAG, "sendAlert: FAILED - ${e.message}")
+                _status.value = "Failed to send alert: ${e.message}"
             } finally {
                 _loading.value = false
+                Log.d(TAG, "sendAlert: Loading hidden")
             }
         }
     }
