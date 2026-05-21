@@ -44,46 +44,38 @@ class HomeFragment : Fragment() {
                 // Show stats for everyone
                 binding.layoutStats.visibility = View.VISIBLE
                 updateLabels()
+                // Update values immediately in case they were fetched before role
+                updateStatValues()
             }
         }
 
-        mainViewModel.hiveCount.observe(viewLifecycleOwner) { count ->
-            if (userRole == "Beekeeper") {
-                binding.tvStat1Value.text = count.toString()
-            }
-        }
-        
-        mainViewModel.nearbyHivesCount.observe(viewLifecycleOwner) { count ->
-            if (userRole == "Farmer") {
-                binding.tvStat1Value.text = count.toString()
-            }
-        }
-
-        mainViewModel.totalHoney.observe(viewLifecycleOwner) { total ->
-            if (userRole == "Beekeeper") {
-                binding.tvStat3Value.text = java.util.Locale.getDefault().let { locale ->
-                    String.format(locale, "%.1f", total)
-                }
-            }
-        }
-
-        mainViewModel.activeAlertsCount.observe(viewLifecycleOwner) { count ->
-            if (userRole == "Beekeeper") {
-                binding.tvStat2Value.text = count.toString()
-            }
-        }
-        
-        mainViewModel.alertsSentCount.observe(viewLifecycleOwner) { count ->
-            if (userRole == "Farmer") {
-                binding.tvStat2Value.text = count.toString()
-            }
-        }
+        mainViewModel.hiveCount.observe(viewLifecycleOwner) { updateStatValues() }
+        mainViewModel.nearbyHivesCount.observe(viewLifecycleOwner) { updateStatValues() }
+        mainViewModel.totalHoney.observe(viewLifecycleOwner) { updateStatValues() }
+        mainViewModel.activeAlertsCount.observe(viewLifecycleOwner) { updateStatValues() }
+        mainViewModel.alertsSentCount.observe(viewLifecycleOwner) { updateStatValues() }
 
         mainViewModel.status.observe(viewLifecycleOwner) { status ->
             status?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
                 mainViewModel.clearStatus()
             }
+        }
+    }
+
+    private fun updateStatValues() {
+        if (userRole.isEmpty()) return
+
+        if (userRole == "Beekeeper") {
+            binding.tvStat1Value.text = (mainViewModel.hiveCount.value ?: 0).toString()
+            binding.tvStat2Value.text = (mainViewModel.activeAlertsCount.value ?: 0).toString()
+            binding.tvStat3Value.text = java.util.Locale.getDefault().let { locale ->
+                String.format(locale, "%.1f", mainViewModel.totalHoney.value ?: 0.0)
+            }
+        } else {
+            binding.tvStat1Value.text = (mainViewModel.nearbyHivesCount.value ?: 0).toString()
+            binding.tvStat2Value.text = (mainViewModel.alertsSentCount.value ?: 0).toString()
+            binding.tvStat3Value.text = "12" // Placeholder for Tips
         }
     }
 

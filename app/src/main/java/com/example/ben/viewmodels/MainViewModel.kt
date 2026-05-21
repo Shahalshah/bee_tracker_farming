@@ -58,9 +58,11 @@ class MainViewModel : ViewModel() {
     // Hives - Responsive with Real-time Listener
     fun fetchAllHives() {
         val uid = FirebaseUtils.currentUserUid ?: return
+        if (hivesListener != null) return
+        
         Log.d(TAG, "fetchAllHives: Started (Real-time)")
         
-        repository.getAllHives().addValueEventListener(object : ValueEventListener {
+        hivesListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Hive>()
                 for (shot in snapshot.children) {
@@ -78,7 +80,9 @@ class MainViewModel : ViewModel() {
                 Log.e(TAG, "fetchAllHives: Failed - ${error.message}")
                 _status.value = "Failed to sync map data"
             }
-        })
+        }
+        
+        repository.getAllHives().addValueEventListener(hivesListener!!)
     }
 
     fun saveHive(hive: Hive) {
@@ -111,14 +115,17 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    private var alertsListener: ValueEventListener? = null
+    private var hivesListener: ValueEventListener? = null
+
     // Alerts - Responsive with Real-time Listener
     fun fetchAlerts() {
         val uid = FirebaseUtils.currentUserUid ?: return
+        if (alertsListener != null) return // Already listening
+        
         Log.d(TAG, "fetchAlerts: Started (Real-time)")
         
-        // Remove existing listener if any to avoid duplicates
-        // (Simple implementation: just add the listener)
-        repository.getAlerts().addValueEventListener(object : ValueEventListener {
+        alertsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Alert>()
                 val now = System.currentTimeMillis()
@@ -130,20 +137,24 @@ class MainViewModel : ViewModel() {
                     shot.getValue(Alert::class.java)?.let { 
                         list.add(0, it)
                         if (now - it.timestamp < oneDayMillis) activeCount++
-                        if (it.farmerId == uid) sentByMe++
+                        if (it.farmerId == uid) {
+                            sentByMe++
+                        }
                     }
                 }
                 _alerts.value = list
                 _activeAlertsCount.value = activeCount
                 _alertsSentCount.value = sentByMe
-                Log.d(TAG, "fetchAlerts: Success, total: ${list.size}")
+                Log.d(TAG, "fetchAlerts: Success, total: ${list.size}, sentByMe: $sentByMe")
             }
 
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "fetchAlerts: Failed - ${error.message}")
                 _status.value = "Failed to sync alerts"
             }
-        })
+        }
+        
+        repository.getAlerts().addValueEventListener(alertsListener!!)
     }
 
     fun sendAlert(alert: Alert) {
