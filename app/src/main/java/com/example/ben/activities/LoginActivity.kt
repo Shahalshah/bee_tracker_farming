@@ -21,6 +21,8 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        Log.d(TAG, "onCreate: Login Page Opened")
+
         setupObservers()
         setupClickListeners()
     }
@@ -29,27 +31,36 @@ class LoginActivity : AppCompatActivity() {
         // Observe user data for role-based navigation
         viewModel.userData.observe(this) { user ->
             if (user != null) {
-                Log.d(TAG, "userData observer: Redirecting user with role ${user.role}")
+                Log.d(TAG, "userData observer: User found, role: ${user.role}. Navigating...")
                 val intent = if (user.role == "Farmer") {
                     Intent(this, FarmerDashboardActivity::class.java)
-                } else {
+                } else if (user.role == "Beekeeper") {
                     Intent(this, BeekeeperDashboardActivity::class.java)
+                } else {
+                    null
                 }
-                startActivity(intent)
-                finish()
+
+                if (intent != null) {
+                    Log.d(TAG, "userData observer: Starting Dashboard")
+                    startActivity(intent)
+                    finish()
+                } else {
+                    Log.e(TAG, "userData observer: Role is invalid or missing")
+                    Toast.makeText(this, "Error: User role invalid.", Toast.LENGTH_LONG).show()
+                }
             }
         }
 
         viewModel.error.observe(this) { error ->
             error?.let {
-                Log.e(TAG, "error observer: $it")
+                Log.e(TAG, "error observer: Displaying error - $it")
                 Toast.makeText(this, it, Toast.LENGTH_LONG).show()
                 viewModel.clearError()
             }
         }
 
         viewModel.loading.observe(this) { isLoading ->
-            Log.d(TAG, "loading observer: $isLoading")
+            Log.d(TAG, "loading observer: Status - $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnLogin.isEnabled = !isLoading
         }
@@ -61,18 +72,22 @@ class LoginActivity : AppCompatActivity() {
             val pass = binding.etPassword.text.toString().trim()
 
             if (email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Please enter all details", Toast.LENGTH_SHORT).show()
+                Log.w(TAG, "setupClickListeners: Empty credentials")
+                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Log.d(TAG, "Login button clicked for $email")
+            
+            Log.d(TAG, "setupClickListeners: Login button clicked for $email")
             viewModel.login(email, pass)
         }
 
         binding.tvSignup.setOnClickListener {
+            Log.d(TAG, "setupClickListeners: Signup link clicked")
             startActivity(Intent(this, SignupActivity::class.java))
         }
 
         binding.tvForgotPassword.setOnClickListener {
+            Log.d(TAG, "setupClickListeners: Forgot Password clicked")
             startActivity(Intent(this, ForgotPasswordActivity::class.java))
         }
     }

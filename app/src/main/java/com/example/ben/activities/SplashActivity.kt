@@ -31,9 +31,9 @@ class SplashActivity : AppCompatActivity() {
         binding.ivLogo.startAnimation(animation)
         binding.tvAppName.startAnimation(animation)
 
-        // Use lifecycleScope for safe background navigation
+        // Startup sequence
         lifecycleScope.launch {
-            // Mandatory splash delay for brand visibility
+            Log.d(TAG, "onCreate: Startup delay started")
             delay(2500)
             checkAuthAndNavigate()
         }
@@ -50,49 +50,48 @@ class SplashActivity : AppCompatActivity() {
         }
 
         val uid = currentUser.uid
-        Log.d(TAG, "checkAuthAndNavigate: User logged in with UID: $uid. Fetching role...")
+        Log.d(TAG, "checkAuthAndNavigate: User logged in (UID: $uid). Fetching role...")
 
         try {
-            // Timeout protection: don't let the splash get stuck if the database is slow
-            val role = withTimeoutOrNull(5000L) { // 5-second timeout
-                Log.d(TAG, "checkAuthAndNavigate: Database fetch started")
-                val snapshot = FirebaseUtils.usersRef().child(uid).child("role").get().await()
-                val roleValue = snapshot.value as? String
-                Log.d(TAG, "checkAuthAndNavigate: Role fetched successfully: $roleValue")
-                roleValue
+            // Fetch role with timeout to prevent freezing
+            val snapshot = withTimeoutOrNull(5000L) {
+                Log.d(TAG, "checkAuthAndNavigate: DB Role fetch started")
+                FirebaseUtils.usersRef().child(uid).child("role").get().await()
             }
 
-            if (role == null) {
-                Log.e(TAG, "checkAuthAndNavigate: FAILED to fetch role within timeout. Safety redirect to Login.")
+            if (snapshot == null) {
+                Log.e(TAG, "checkAuthAndNavigate: FAILED - DB fetch timeout (5s)")
+                // If we can't get the role, we can't decide dashboard, so go to Login safely
+                FirebaseUtils.auth.signOut()
                 navigateTo(LoginActivity::class.java)
-            } else {
-                when (role) {
-                    "Farmer" -> {
-                        Log.d(TAG, "checkAuthAndNavigate: Navigating to Farmer Dashboard")
-                        navigateTo(FarmerDashboardActivity::class.java)
-                    }
-                    "Beekeeper" -> {
-                        Log.d(TAG, "checkAuthAndNavigate: Navigating to Beekeeper Dashboard")
-                        navigateTo(BeekeeperDashboardActivity::class.java)
-                    }
-                    else -> {
-                        Log.w(TAG, "checkAuthAndNavigate: Unknown role found: $role. Falling back to Login.")
-                        navigateTo(LoginActivity::class.java)
-                    }
+                return
+            }
+
+            val role = snapshot.value as? String
+            Log.d(TAG, "checkAuthAndNavigate: Role fetched: $role")
+
+            when (role) {
+                "Farmer" -> navigateTo(FarmerDashboardActivity::class.java)
+                "Beekeeper" -> navigateTo(BeekeeperDashboardActivity::class.java)
+                else -> {
+                    Log.e(TAG, "checkAuthAndNavigate: Unknown or missing role. Sign out.")
+                    FirebaseUtils.auth.signOut()
+                    navigateTo(LoginActivity::class.java)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "checkAuthAndNavigate: ERROR during startup flow: ${e.message}", e)
+            Log.e(TAG, "checkAuthAndNavigate: CRITICAL ERROR during startup: ${e.message}", e)
             navigateTo(LoginActivity::class.java)
         }
     }
 
     private fun navigateTo(destination: Class<*>) {
-        Log.d(TAG, "navigateTo: Triggering intent for ${destination.simpleName}")
+        Log.d(TAG, "navigateTo: Intent to ${destination.simpleName}")
         val intent = Intent(this, destination)
+        // Clear stack to prevent splash back-navigation or loops
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
-        Log.d(TAG, "navigateTo: Splash screen FINISHED")
+        Log.d(TAG, "navigateTo: Splash screen FINISHED and activity destroyed")
     }
 }

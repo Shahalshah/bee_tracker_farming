@@ -43,7 +43,14 @@ class AuthViewModel : ViewModel() {
                 }
                 Log.d(TAG, "login: Auth success, fetching user data...")
                 _authState.value = result
-                fetchUserData(result.user?.uid ?: "")
+                
+                val uid = result.user?.uid ?: ""
+                if (uid.isNotEmpty()) {
+                    fetchUserDataInternal(uid)
+                } else {
+                    _error.value = "User ID not found after login"
+                    _loading.value = false
+                }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 Log.e(TAG, "login: Timeout")
                 _error.value = "Login timed out. Please check your internet."
@@ -67,7 +74,7 @@ class AuthViewModel : ViewModel() {
                     }
                 }
                 val newUser = user.copy(uid = result.user?.uid ?: "")
-                saveUser(newUser)
+                saveUserInternal(newUser)
             } catch (e: Exception) {
                 Log.e(TAG, "signup: Failed - ${e.message}")
                 _error.value = e.message ?: "Signup failed"
@@ -76,50 +83,67 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    private fun saveUser(user: User) {
-        viewModelScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    repository.saveUser(user).await()
-                }
-                Log.d(TAG, "saveUser: Success")
-                _userData.value = user
-            } catch (e: Exception) {
-                Log.e(TAG, "saveUser: Failed - ${e.message}")
-                _error.value = "Failed to save user data"
-            } finally {
-                _loading.value = false
+    private suspend fun saveUserInternal(user: User) {
+        try {
+            withContext(Dispatchers.IO) {
+                repository.saveUser(user).await()
             }
+            Log.d(TAG, "saveUserInternal: Success")
+            _userData.value = user
+        } catch (e: Exception) {
+            Log.e(TAG, "saveUserInternal: Failed - ${e.message}")
+            _error.value = "Failed to save user data: ${e.message}"
+        } finally {
+            _loading.value = false
+        }
+    }
+
+    private suspend fun fetchUserDataInternal(uid: String) {
+        Log.d(TAG, "fetchUserDataInternal: Started for $uid")
+        try {
+            val snapshot = withTimeout(5000L) {
+                withContext(Dispatchers.IO) {
+                    repository.getUserData(uid).await()
+                }
+            }
+            val user = snapshot.getValue(User::class.java)
+            if (user != null) {
+                Log.d(TAG, "fetchUserDataInternal: Success, role: ${user.role}")
+                _userData.value = user
+            } else {
+                Log.e(TAG, "fetchUserDataInternal: User role not found")
+                _error.value = "User profile not found in database."
+                logout()
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(TAG, "fetchUserDataInternal: Timeout")
+            _error.value = "Profile fetch timed out."
+        } catch (e: Exception) {
+            Log.e(TAG, "fetchUserDataInternal: Failed - ${e.message}")
+            _error.value = "Failed to fetch user role: ${e.message}"
+        } finally {
+            _loading.value = false
         }
     }
 
     fun fetchUserData(uid: String) {
-        if (uid.isEmpty()) return
-        Log.d(TAG, "fetchUserData: Started for $uid")
+        if (uid.isEmpty()) {
+            _loading.value = false
+            return
+        }
+        Log.d(TAG, "fetchUserData: Explicit call for $uid")
         viewModelScope.launch {
             _loading.value = true
-            try {
-                val snapshot = withTimeout(5000L) {
-                    withContext(Dispatchers.IO) {
-                        repository.getUserData(uid).await()
-                    }
-                }
-                val user = snapshot.getValue(User::class.java)
-                Log.d(TAG, "fetchUserData: Success, role: ${user?.role}")
-                _userData.value = user
-            } catch (e: Exception) {
-                Log.e(TAG, "fetchUserData: Failed - ${e.message}")
-                _error.value = "Failed to fetch user role"
-            } finally {
-                _loading.value = false
-            }
+            fetchUserDataInternal(uid)
         }
     }
 
     fun logout() {
+        Log.d(TAG, "logout: User signed out")
         repository.logout()
         _authState.value = null
         _userData.value = null
+        _loading.value = false
     }
 
     fun forgotPassword(email: String) {
