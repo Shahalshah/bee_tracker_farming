@@ -17,7 +17,8 @@
             android:background="@color/primary_green"
             app:title="Honey Production"
             app:titleTextColor="@color/white"
-            app:navigationIcon="@android:drawable/ic_menu_revert"/>
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIconTint="@color/white"/>
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

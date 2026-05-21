@@ -39,6 +39,7 @@ class DashboardActivity : AppCompatActivity() {
             authViewModel.fetchUserData(uid)
             mainViewModel.fetchAlerts()
             mainViewModel.fetchAllHives()
+            mainViewModel.fetchHoneyRecords()
         } else {
             Toast.makeText(this, "Session expired", Toast.LENGTH_SHORT).show()
             finish()

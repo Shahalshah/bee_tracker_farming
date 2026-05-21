@@ -27,7 +27,8 @@
         android:background="@color/primary_green"
         app:title="@string/nearby_hives"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/white"
         app:layout_constraintTop_toTopOf="parent"/>
 
     <androidx.cardview.widget.CardView

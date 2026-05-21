@@ -42,6 +42,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var userRole: String = ""
     private var currentLatLng: LatLng? = null
     private var currentCircle: Circle? = null
+    private var targetLat: Double = 0.0
+    private var targetLng: Double = 0.0
     
     // Track markers to avoid flickering and improve performance
     private val hiveMarkers = mutableMapOf<String, Marker>()
@@ -64,6 +66,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         action = intent.getStringExtra("ACTION") ?: ""
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        targetLat = intent.getDoubleExtra("LAT", 0.0)
+        targetLng = intent.getDoubleExtra("LNG", 0.0)
 
         binding.toolbar.setNavigationOnClickListener { finish() }
 
@@ -108,7 +113,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             isMapToolbarEnabled = false
         }
 
-        checkLocationPermissions()
+        if (targetLat != 0.0 && targetLng != 0.0) {
+            val target = LatLng(targetLat, targetLng)
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 16f))
+        } else {
+            checkLocationPermissions()
+        }
         mainViewModel.fetchAllHives()
 
         mMap.setOnMapClickListener { latLng ->
@@ -182,9 +192,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun updateMapMarkers(hives: List<Hive>) {
+        if (!::mMap.isInitialized) return
+        Log.d(TAG, "updateMapMarkers: Received ${hives.size} hives from Firebase")
+        
         // Find hives that are no longer in the list
         val currentHiveIds = hives.map { it.id }.toSet()
         val markersToRemove = hiveMarkers.filter { it.key !in currentHiveIds }
+        Log.d(TAG, "updateMapMarkers: Removing ${markersToRemove.size} stale markers")
         markersToRemove.forEach { (id, marker) ->
             marker.remove()
             hiveMarkers.remove(id)
@@ -194,8 +208,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         hives.forEach { hive ->
             val pos = LatLng(hive.latitude, hive.longitude)
             if (hiveMarkers.containsKey(hive.id)) {
+                Log.d(TAG, "updateMapMarkers: Updating existing marker for hive: ${hive.name}")
                 hiveMarkers[hive.id]?.position = pos
             } else {
+                Log.d(TAG, "updateMapMarkers: Adding NEW marker for hive: ${hive.name} at $pos")
                 val marker = mMap.addMarker(MarkerOptions()
                     .position(pos)
                     .title(hive.name)
@@ -209,8 +225,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun showPinDialog(latLng: LatLng) {
-        // Optimistic marker: place it instantly
-        val tempId = "temp_${System.currentTimeMillis()}"
+        Log.d(TAG, "showPinDialog: Marker selected at $latLng")
+        // Instant visual feedback: place a temporary marker
         val tempMarker = mMap.addMarker(MarkerOptions()
             .position(latLng)
             .title("Selected Location")

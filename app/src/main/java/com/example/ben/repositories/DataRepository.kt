@@ -1,20 +1,28 @@
 package com.example.ben.repositories
 
+import android.util.Log
 import com.example.ben.models.*
 import com.example.ben.utils.FirebaseUtils
 import com.google.android.gms.tasks.Task
 import com.google.firebase.database.Query
 
 class DataRepository {
+    private val TAG = "DataRepositoryDebug"
     
     // Hives
     fun saveHive(hive: Hive): Task<Void> {
         val ref = FirebaseUtils.hivesRef()
-        // Check if we already have an ID, otherwise create one
         val hiveId = if (hive.id.isEmpty()) ref.push().key ?: "" else hive.id
-        if (hiveId.isEmpty()) throw IllegalStateException("Failed to generate Hive ID. Check Database connection.")
         
-        return ref.child(hiveId).setValue(hive.copy(id = hiveId))
+        if (hiveId.isEmpty()) {
+            Log.e(TAG, "saveHive: Failed to generate hive ID")
+            throw IllegalStateException("Failed to generate Hive ID.")
+        }
+        
+        val finalHive = hive.copy(id = hiveId, timestamp = System.currentTimeMillis())
+        Log.d(TAG, "saveHive: Saving to path: hives/$hiveId data: $finalHive")
+        
+        return ref.child(hiveId).setValue(finalHive)
     }
 
     fun deleteHive(hiveId: String): Task<Void> {

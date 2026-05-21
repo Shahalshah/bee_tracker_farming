@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary_green"
-            app:title="Alert History"
+            app:title="Manage Hives"
             app:titleTextColor="@color/white"
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:navigationIconTint="@color/white"/>
@@ -25,7 +25,7 @@
             android:layout_height="match_parent">
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvNotifications"
+                android:id="@+id/rvHives"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="8dp"
@@ -35,7 +35,7 @@
                 android:id="@+id/tvEmptyState"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="No notifications found"
+                android:text="No hives added yet"
                 android:layout_gravity="center"
                 android:visibility="gone"/>
 
@@ -47,5 +47,16 @@
                 android:visibility="gone"/>
         </FrameLayout>
     </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddHive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:src="@android:drawable/ic_input_add"
+        app:tint="@color/white"
+        android:backgroundTint="@color/button_green"
+        android:contentDescription="Add Hive"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

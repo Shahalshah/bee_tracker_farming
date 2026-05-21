@@ -17,7 +17,8 @@
             android:background="@color/primary_green"
             app:title="@string/bee_tips"
             app:titleTextColor="@color/white"
-            app:navigationIcon="@android:drawable/ic_menu_revert"/>
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIconTint="@color/white"/>
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"

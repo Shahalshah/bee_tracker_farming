@@ -40,7 +40,24 @@ class HomeFragment : Fragment() {
             if (user != null) {
                 userRole = user.role
                 updateUI(user.name)
+                
+                // Show stats for beekeeper
+                binding.layoutStats.visibility = if (userRole == "Beekeeper") View.VISIBLE else View.GONE
             }
+        }
+
+        mainViewModel.hiveCount.observe(viewLifecycleOwner) { count ->
+            binding.tvStatHiveCount.text = count.toString()
+        }
+
+        mainViewModel.totalHoney.observe(viewLifecycleOwner) { total ->
+            binding.tvStatHoneyTotal.text = java.util.Locale.getDefault().let { locale ->
+                String.format(locale, "%.1f", total)
+            }
+        }
+
+        mainViewModel.activeAlertsCount.observe(viewLifecycleOwner) { count ->
+            binding.tvStatAlertCount.text = count.toString()
         }
 
         mainViewModel.status.observe(viewLifecycleOwner) { status ->
@@ -65,8 +82,8 @@ class HomeFragment : Fragment() {
 
     private fun setupBeekeeperDashboard() {
         // Card 1: Hive Management (Add Hive Location)
-        binding.tvAction1.text = getString(R.string.add_hive_location)
-        binding.tvAction1Sub.text = "Manage your hives"
+        binding.tvAction1.text = "Manage Hives"
+        binding.tvAction1Sub.text = "Add, Edit, or Delete"
         binding.ivAction1.setImageResource(android.R.drawable.ic_menu_add)
         binding.cardAction1.setCardBackgroundColor(requireContext().getColor(R.color.card_action_map))
 
@@ -119,9 +136,8 @@ class HomeFragment : Fragment() {
         binding.cardAction1.setOnClickListener {
             if (userRole == "Farmer") startActivity(Intent(requireContext(), AlertActivity::class.java))
             else {
-                val intent = Intent(requireContext(), MapActivity::class.java)
-                intent.putExtra("ACTION", "ADD_HIVE")
-                startActivity(intent)
+                // Beekeeper: Manage Hives
+                startActivity(Intent(requireContext(), ManageHivesActivity::class.java))
             }
         }
         binding.cardAction2.setOnClickListener {

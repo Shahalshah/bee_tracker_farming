@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white">
+    android:background="@color/background_cream">
 
     <!-- Custom Header -->
     <RelativeLayout
@@ -37,7 +37,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="8dp"
             android:layout_centerVertical="true"
-            android:text="@string/hello_farmer"
+            android:text="@string/hello_user"
             android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
@@ -72,16 +72,16 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Banner Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 app:cardElevation="0dp">
                 <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="180dp">
-                    <!-- Placeholder for the Banner Image -->
+                    android:layout_height="160dp">
                     <ImageView
                         android:id="@+id/ivBanner"
                         android:layout_width="match_parent"
@@ -92,19 +92,119 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="#22000000"/>
+                        android:background="#44000000"/>
                     <TextView
                         android:id="@+id/tvBannerText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_margin="20dp"
-                        android:text="@string/farmer_banner"
-                        android:textColor="@color/text_dark"
+                        android:text="..."
+                        android:textColor="@color/white"
                         android:textSize="22sp"
                         android:textStyle="bold"
                         android:lineSpacingExtra="4dp"/>
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
+
+            <!-- Beekeeper Stats Row -->
+            <LinearLayout
+                android:id="@+id/layoutStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+                        <TextView
+                            android:id="@+id/tvStatHiveCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/primary_green"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Hives"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_gray"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="4dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+                        <TextView
+                            android:id="@+id/tvStatAlertCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/alert_red"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Active Alerts"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_gray"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+                        <TextView
+                            android:id="@+id/tvStatHoneyTotal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.0"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/honey_orange"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Honey (kg)"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_gray"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -131,8 +231,7 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="8dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/card_action_alert">
+                    app:cardElevation="2dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -143,13 +242,12 @@
                             android:id="@+id/ivAction1"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:src="@android:drawable/ic_dialog_alert"
-                            app:tint="@color/alert_red"/>
+                            android:src="@android:drawable/ic_dialog_alert"/>
                         <TextView
                             android:id="@+id/tvAction1"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/spray_alert"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_dark"
                             android:textStyle="bold"
@@ -159,7 +257,7 @@
                             android:id="@+id/tvAction1Sub"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/spraying_today_sub"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_gray"
                             android:textSize="12sp"
@@ -175,8 +273,7 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="8dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/card_action_map">
+                    app:cardElevation="2dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -187,13 +284,12 @@
                             android:id="@+id/ivAction2"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:src="@android:drawable/ic_dialog_map"
-                            app:tint="@color/primary_green"/>
+                            android:src="@android:drawable/ic_dialog_map"/>
                         <TextView
                             android:id="@+id/tvAction2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/view_hive_map"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_dark"
                             android:textStyle="bold"
@@ -203,7 +299,7 @@
                             android:id="@+id/tvAction2Sub"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/nearby_hives_sub"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_gray"
                             android:textSize="12sp"
@@ -219,8 +315,7 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="8dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/card_action_tips">
+                    app:cardElevation="2dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -231,13 +326,12 @@
                             android:id="@+id/ivAction3"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:src="@android:drawable/ic_menu_info_details"
-                            app:tint="@color/honey_orange"/>
+                            android:src="@android:drawable/ic_menu_info_details"/>
                         <TextView
                             android:id="@+id/tvAction3"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/bee_tips"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_dark"
                             android:textStyle="bold"
@@ -247,7 +341,7 @@
                             android:id="@+id/tvAction3Sub"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/learn_protect"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_gray"
                             android:textSize="12sp"
@@ -263,8 +357,7 @@
                     android:layout_columnWeight="1"
                     android:layout_margin="8dp"
                     app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/card_action_history">
+                    app:cardElevation="2dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -275,13 +368,12 @@
                             android:id="@+id/ivAction4"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:src="@android:drawable/ic_popup_reminder"
-                            app:tint="@color/honey_orange"/>
+                            android:src="@android:drawable/ic_popup_reminder"/>
                         <TextView
                             android:id="@+id/tvAction4"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/notification_history"
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_dark"
                             android:textStyle="bold"
@@ -291,7 +383,7 @@
                             android:id="@+id/tvAction4Sub"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text=""
+                            android:text="..."
                             android:textAlignment="center"
                             android:textColor="@color/text_gray"
                             android:textSize="12sp"

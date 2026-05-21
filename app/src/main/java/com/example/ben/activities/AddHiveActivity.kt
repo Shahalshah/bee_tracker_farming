@@ -1,6 +1,7 @@
 package com.example.ben.activities
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -12,6 +13,7 @@ import com.example.ben.viewmodels.MainViewModel
 
 class AddHiveActivity : AppCompatActivity() {
 
+    private val TAG = "AddHiveActivityDebug"
     private lateinit var binding: ActivityAddHiveBinding
     private val mainViewModel: MainViewModel by viewModels()
     
@@ -49,16 +51,21 @@ class AddHiveActivity : AppCompatActivity() {
         }
 
         mainViewModel.loading.observe(this) { isLoading ->
-            // Use a subtle loading state
+            Log.d(TAG, "MainViewModel.loading observer: $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnSaveHive.isEnabled = !isLoading
+            
+            if (isLoading) Log.d(TAG, "Loading shown")
+            else Log.d(TAG, "Loading hidden")
         }
     }
 
     private fun validateAndSave() {
+        Log.d(TAG, "validateAndSave: Save clicked. Lat: $latitude, Lng: $longitude")
         val uid = FirebaseUtils.currentUserUid
         if (uid == null) {
-            Toast.makeText(this, "Session expired", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "validateAndSave: FAILED - UID is null")
+            Toast.makeText(this, "Session expired. Please log in again.", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -68,6 +75,13 @@ class AddHiveActivity : AppCompatActivity() {
 
         if (name.isEmpty()) {
             binding.etHiveName.error = "Name required"
+            Log.w(TAG, "validateAndSave: FAILED - Hive name empty")
+            return
+        }
+
+        if (latitude == 0.0 || longitude == 0.0) {
+            Log.e(TAG, "validateAndSave: FAILED - Coordinates are 0.0")
+            Toast.makeText(this, "Invalid location coordinates. Go back and select location again.", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -78,10 +92,11 @@ class AddHiveActivity : AppCompatActivity() {
             longitude = longitude,
             description = desc,
             population = population,
-            status = "Active"
+            status = "Active",
+            timestamp = System.currentTimeMillis()
         )
 
-        // The save is now instant due to Firebase Persistence and Coroutines
+        Log.i(TAG, "validateAndSave: Submitting hive to ViewModel: $hive")
         mainViewModel.saveHive(hive)
     }
 }
