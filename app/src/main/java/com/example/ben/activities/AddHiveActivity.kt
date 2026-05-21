@@ -25,6 +25,8 @@ class AddHiveActivity : AppCompatActivity() {
         binding = ActivityAddHiveBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        Log.d(TAG, "onCreate: Add Hive Details Page Opened")
+
         latitude = intent.getDoubleExtra("LAT", 0.0)
         longitude = intent.getDoubleExtra("LNG", 0.0)
         
@@ -40,23 +42,28 @@ class AddHiveActivity : AppCompatActivity() {
     private fun setupObservers() {
         mainViewModel.status.observe(this) { status ->
             status?.let {
-                Log.d(TAG, "mainViewModel.status observer: $it")
+                Log.d(TAG, "setupObservers: status change - $it")
                 Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
-                if (it.contains("successfully", true)) finish()
+                if (it.contains("successfully", true)) {
+                    Log.d(TAG, "setupObservers: Closing activity on success")
+                    finish()
+                }
                 mainViewModel.clearStatus()
             }
         }
 
         mainViewModel.loading.observe(this) { isLoading ->
-            Log.d(TAG, "mainViewModel.loading observer: $isLoading")
+            Log.d(TAG, "setupObservers: loading status - $isLoading")
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.btnSaveHive.isEnabled = !isLoading
         }
     }
 
     private fun validateAndSave() {
+        Log.d(TAG, "validateAndSave: Save Button Clicked")
         val uid = FirebaseUtils.currentUserUid
         if (uid == null) {
+            Log.e(TAG, "validateAndSave: FAILED - No User UID")
             Toast.makeText(this, "Session expired. Please login again.", Toast.LENGTH_LONG).show()
             return
         }
@@ -66,11 +73,16 @@ class AddHiveActivity : AppCompatActivity() {
         val population = binding.etPopulation.text.toString().trim()
 
         if (name.isEmpty()) {
+            Log.w(TAG, "validateAndSave: FAILED - Name is empty")
             binding.etHiveName.error = "Name required"
             return
         }
 
-        Log.d(TAG, "validateAndSave: Saving hive $name")
+        if (latitude == 0.0 || longitude == 0.0) {
+            Log.e(TAG, "validateAndSave: FAILED - Coordinates are 0.0")
+            Toast.makeText(this, "Error: Location coordinates invalid.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val hive = Hive(
             beekeeperId = uid,
@@ -79,9 +91,11 @@ class AddHiveActivity : AppCompatActivity() {
             longitude = longitude,
             description = desc,
             population = population,
-            status = "Active"
+            status = "Active",
+            timestamp = System.currentTimeMillis()
         )
 
+        Log.i(TAG, "validateAndSave: Sending Hive object to ViewModel for Firebase Write: $hive")
         mainViewModel.saveHive(hive)
     }
 }
