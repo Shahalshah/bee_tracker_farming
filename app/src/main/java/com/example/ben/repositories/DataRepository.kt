@@ -41,10 +41,14 @@ class DataRepository {
     fun sendAlert(alert: Alert): Task<Void> {
         val ref = FirebaseUtils.alertsRef()
         val id = ref.push().key ?: ""
-        if (id.isEmpty()) throw IllegalStateException("Failed to generate Alert ID.")
+        if (id.isEmpty()) {
+            Log.e(TAG, "sendAlert: Failed to generate unique ID")
+            throw IllegalStateException("Failed to generate Alert ID.")
+        }
         
         val finalAlert = alert.copy(id = id, timestamp = System.currentTimeMillis())
-        Log.d(TAG, "sendAlert: Saving to alerts/$id")
+        Log.d(TAG, "sendAlert: Attempting to save alert to path: alerts/$id")
+        Log.d(TAG, "sendAlert: Data: $finalAlert")
         
         return ref.child(id).setValue(finalAlert)
     }

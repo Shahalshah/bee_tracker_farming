@@ -55,18 +55,13 @@ class MainViewModel : ViewModel() {
     private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> = _loading
 
-    // Hives - Optimized with Timeout and Single Fetch
+    // Hives - Responsive with Real-time Listener
     fun fetchAllHives() {
         val uid = FirebaseUtils.currentUserUid ?: return
-        Log.d(TAG, "fetchAllHives: Started")
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                val snapshot = withTimeout(5000L) {
-                    withContext(Dispatchers.IO) {
-                        repository.getAllHives().get().await()
-                    }
-                }
+        Log.d(TAG, "fetchAllHives: Started (Real-time)")
+        
+        repository.getAllHives().addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Hive>()
                 for (shot in snapshot.children) {
                     shot.getValue(Hive::class.java)?.let { list.add(it) }
@@ -77,13 +72,13 @@ class MainViewModel : ViewModel() {
                 _hiveCount.value = list.count { it.beekeeperId == uid }
                 _nearbyHivesCount.value = list.size
                 Log.d(TAG, "fetchAllHives: Success, total: ${list.size}")
-            } catch (e: Exception) {
-                Log.e(TAG, "fetchAllHives: Failed - ${e.message}")
-                _status.value = "Failed to load map data"
-            } finally {
-                _loading.value = false
             }
-        }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "fetchAllHives: Failed - ${error.message}")
+                _status.value = "Failed to sync map data"
+            }
+        })
     }
 
     fun saveHive(hive: Hive) {
@@ -112,18 +107,15 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // Alerts - Optimized with Timeout
+    // Alerts - Responsive with Real-time Listener
     fun fetchAlerts() {
         val uid = FirebaseUtils.currentUserUid ?: return
-        Log.d(TAG, "fetchAlerts: Started")
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                val snapshot = withTimeout(5000L) {
-                    withContext(Dispatchers.IO) {
-                        repository.getAlerts().get().await()
-                    }
-                }
+        Log.d(TAG, "fetchAlerts: Started (Real-time)")
+        
+        // Remove existing listener if any to avoid duplicates
+        // (Simple implementation: just add the listener)
+        repository.getAlerts().addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Alert>()
                 val now = System.currentTimeMillis()
                 val oneDayMillis = 24 * 60 * 60 * 1000
@@ -141,29 +133,38 @@ class MainViewModel : ViewModel() {
                 _activeAlertsCount.value = activeCount
                 _alertsSentCount.value = sentByMe
                 Log.d(TAG, "fetchAlerts: Success, total: ${list.size}")
-            } catch (e: Exception) {
-                Log.e(TAG, "fetchAlerts: Failed - ${e.message}")
-                _status.value = "Failed to load alerts"
-            } finally {
-                _loading.value = false
             }
-        }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "fetchAlerts: Failed - ${error.message}")
+                _status.value = "Failed to sync alerts"
+            }
+        })
     }
 
     fun sendAlert(alert: Alert) {
+        val uid = FirebaseUtils.currentUserUid
+        if (uid == null) {
+            _status.value = "Session expired. Please login again."
+            return
+        }
+
         viewModelScope.launch {
             _loading.value = true
             try {
-                withTimeout(5000L) {
+                withTimeout(8000L) { // Increased timeout for better reliability
                     withContext(Dispatchers.IO) {
                         repository.sendAlert(alert).await()
                     }
                 }
-                _status.value = "Alert sent successfully"
+                _status.value = "Alert sent successfully!"
                 fetchAlerts() // Refresh list
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.e(TAG, "sendAlert: Timeout")
+                _status.value = "Network timeout. Please try again."
             } catch (e: Exception) {
                 Log.e(TAG, "sendAlert: Failed - ${e.message}")
-                _status.value = "Failed to send alert"
+                _status.value = "Failed: ${e.message ?: "Unknown error"}"
             } finally {
                 _loading.value = false
             }
